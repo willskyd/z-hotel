@@ -1,7 +1,12 @@
 import { MongoClient, Db } from 'mongodb';
 import bcryptjs from 'bcryptjs';
 
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/zinuel-ch-hotel';
+const MONGODB_URI = process.env.MONGODB_URI || process.env.MONGO_URI || 'mongodb://localhost:27017/zinuel-ch-hotel';
+
+if (!process.env.MONGODB_URI && !process.env.MONGO_URI) {
+  console.log('⚠️  No MONGODB_URI found. Please set it in your environment variables.');
+  console.log('   Using default: mongodb://localhost:27017/zinuel-ch-hotel');
+}
 
 interface User {
   _id?: string;
@@ -183,7 +188,7 @@ async function seedUsers(db: Db): Promise<User[]> {
     },
   ];
 
-  const result = await db.collection('users').insertMany(users);
+  const result = await db.collection('users').insertMany(users as any);
   return users.map((u, i) => ({ ...u, _id: result.insertedIds[i]?.toString() }));
 }
 
@@ -312,8 +317,9 @@ async function seedBilling(db: Db, reservations: Reservation[]): Promise<object[
   const paymentStatuses = ['paid', 'pending', 'partial', 'refunded'];
 
   for (const reservation of reservations) {
+    const foundReservation = await db.collection('reservations').findOne({ checkInDate: reservation.checkInDate });
     billingRecords.push({
-      reservationId: (await db.collection('reservations').findOne({ checkInDate: reservation.checkInDate })?._id),
+      reservationId: foundReservation?._id?.toString(),
       amount: reservation.totalPrice,
       currency: 'EUR',
       paymentMethod: paymentMethods[Math.floor(Math.random() * paymentMethods.length)],
