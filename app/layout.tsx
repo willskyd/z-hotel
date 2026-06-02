@@ -7,25 +7,26 @@ const _geist = Geist({ subsets: ["latin"] });
 const _geistMono = Geist_Mono({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: 'v0 App',
-  description: 'Created with v0',
+  title: 'Zinuel-ch Hotel | Enterprise Property Management System',
+  description: 'Premium hotel property management system for efficient operations, reservations, and guest management',
   generator: 'v0.app',
+  metadataBase: new URL('https://zinuel-ch.hotel'),
   icons: {
-    icon: [
+    icon: '/logo.png',
+    apple: '/logo.png',
+  },
+  openGraph: {
+    title: 'Zinuel-ch Hotel PMS',
+    description: 'Enterprise-grade hotel management solution',
+    type: 'website',
+    images: [
       {
-        url: '/icon-light-32x32.png',
-        media: '(prefers-color-scheme: light)',
-      },
-      {
-        url: '/icon-dark-32x32.png',
-        media: '(prefers-color-scheme: dark)',
-      },
-      {
-        url: '/icon.svg',
-        type: 'image/svg+xml',
+        url: '/logo.png',
+        width: 200,
+        height: 200,
+        alt: 'Zinuel-ch Hotel',
       },
     ],
-    apple: '/apple-icon.png',
   },
 }
 
@@ -35,8 +36,8 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en">
-      <body className="font-sans antialiased">
+    <html lang="en" className="dark">
+      <body className="font-sans antialiased bg-background">
         {children}
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
