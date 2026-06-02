@@ -17,7 +17,7 @@ export async function connectToDatabase() {
   try {
     const client = new MongoClient(MONGODB_URI);
     await client.connect();
-    const db = client.db('zinuel_ch_hotel');
+    const db = client.db(); // Uses the database from the connection string (hotel-mgmt)
 
     cachedClient = client;
     cachedDb = db;
