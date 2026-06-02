@@ -22,28 +22,45 @@ const data = [
 
 export default function RevenueChart() {
   return (
-    <div className="card-premium">
-      <h3 className="text-lg font-semibold text-foreground mb-6">
-        Monthly Revenue
-      </h3>
+    <div className="bg-card border border-border rounded-xl p-6 hover:border-primary/30 transition-all duration-300">
+      <div className="flex items-center justify-between mb-6">
+        <h3 className="text-lg font-semibold text-foreground">
+          Monthly Revenue
+        </h3>
+        <span className="text-sm bg-green-500/20 border border-green-500/30 text-green-400 px-3 py-1 rounded-full">
+          +15% Growth
+        </span>
+      </div>
       <ResponsiveContainer width="100%" height={300}>
         <BarChart data={data}>
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-          <XAxis dataKey="month" stroke="rgba(255,255,255,0.6)" />
-          <YAxis stroke="rgba(255,255,255,0.6)" />
+          <CartesianGrid strokeDasharray="3 3" stroke="#242839" />
+          <XAxis 
+            dataKey="month" 
+            stroke="#8e92a3"
+            style={{ fontSize: '12px' }}
+          />
+          <YAxis 
+            stroke="#8e92a3"
+            style={{ fontSize: '12px' }}
+          />
           <Tooltip
             contentStyle={{
-              backgroundColor: 'rgba(0,0,0,0.8)',
-              border: '1px solid rgba(255,215,0,0.2)',
+              backgroundColor: '#14172c',
+              border: '1px solid #242839',
               borderRadius: '8px',
             }}
-            labelStyle={{ color: 'rgba(255,255,255,0.8)' }}
+            labelStyle={{ color: '#f0f0f0' }}
           />
           <Legend />
-          <Bar dataKey="revenue" fill="rgb(255,215,0)" radius={[8, 8, 0, 0]} />
+          <Bar 
+            dataKey="revenue" 
+            fill="#d4a574" 
+            radius={[8, 8, 0, 0]}
+          />
           <Bar
             dataKey="target"
-            fill="rgba(255,255,255,0.2)"
+            fill="#8e92a3"
+            opacity={0.4}
             radius={[8, 8, 0, 0]}
           />
         </BarChart>

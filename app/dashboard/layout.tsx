@@ -1,6 +1,6 @@
 import { AuthProvider } from '@/lib/auth-context';
-import Sidebar from '@/components/layout/sidebar';
-import Header from '@/components/layout/header';
+import { IconSidebar } from '@/components/layout/icon-sidebar';
+import { TopHeader } from '@/components/layout/top-header';
 import ProtectedRoute from '@/components/auth/protected-route';
 
 export const metadata = {
@@ -16,16 +16,14 @@ export default function DashboardLayout({
   return (
     <AuthProvider>
       <ProtectedRoute>
-        <div className="flex min-h-screen bg-background">
-          <Sidebar />
-          <div className="flex-1 flex flex-col">
-            <Header />
-            <main className="flex-1 overflow-auto">
-              <div className="p-6 md:p-8">
-                {children}
-              </div>
-            </main>
-          </div>
+        <div className="min-h-screen bg-background">
+          <IconSidebar />
+          <TopHeader />
+          <main className="ml-16 pt-16 overflow-auto">
+            <div className="p-6 md:p-8">
+              {children}
+            </div>
+          </main>
         </div>
       </ProtectedRoute>
     </AuthProvider>

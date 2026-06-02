@@ -30,31 +30,36 @@ export default function RecentReservations({
   reservations,
 }: RecentReservationsProps) {
   return (
-    <div className="card-premium">
-      <h3 className="text-lg font-semibold text-foreground mb-6">
-        Recent Reservations
-      </h3>
+    <div className="bg-card border border-border rounded-xl p-6 hover:border-primary/30 transition-all duration-300">
+      <div className="flex items-center justify-between mb-6">
+        <h3 className="text-lg font-semibold text-foreground">
+          Recent Reservations
+        </h3>
+        <button className="text-sm text-primary hover:text-accent transition-colors">
+          View All
+        </button>
+      </div>
       <div className="overflow-x-auto">
-        <table className="table-premium">
+        <table className="w-full">
           <thead>
-            <tr>
-              <th>Guest Name</th>
-              <th>Room</th>
-              <th>Check-In</th>
-              <th>Check-Out</th>
-              <th>Status</th>
+            <tr className="border-b border-border">
+              <th className="px-4 py-3 text-left text-sm font-semibold text-muted-foreground">Guest Name</th>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-muted-foreground">Room</th>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-muted-foreground">Check-In</th>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-muted-foreground">Check-Out</th>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-muted-foreground">Status</th>
             </tr>
           </thead>
           <tbody>
             {reservations.map((reservation) => (
-              <tr key={reservation.id}>
-                <td className="font-medium text-foreground">
+              <tr key={reservation.id} className="border-b border-border/50 hover:bg-secondary/40 transition-colors">
+                <td className="px-4 py-4 font-medium text-foreground">
                   {reservation.guestName}
                 </td>
-                <td className="text-foreground">#{reservation.roomNumber}</td>
-                <td className="text-muted-foreground">{reservation.checkIn}</td>
-                <td className="text-muted-foreground">{reservation.checkOut}</td>
-                <td>
+                <td className="px-4 py-4 text-foreground">#{reservation.roomNumber}</td>
+                <td className="px-4 py-4 text-muted-foreground text-sm">{reservation.checkIn}</td>
+                <td className="px-4 py-4 text-muted-foreground text-sm">{reservation.checkOut}</td>
+                <td className="px-4 py-4">
                   <span
                     className={`text-xs font-semibold px-3 py-1 rounded-full ${getStatusColor(
                       reservation.status

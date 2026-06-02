@@ -23,37 +23,51 @@ const data = [
 
 export default function OccupancyChart() {
   return (
-    <div className="card-premium">
-      <h3 className="text-lg font-semibold text-foreground mb-6">
-        Weekly Occupancy
-      </h3>
+    <div className="bg-card border border-border rounded-xl p-6 hover:border-primary/30 transition-all duration-300">
+      <div className="flex items-center justify-between mb-6">
+        <h3 className="text-lg font-semibold text-foreground">
+          Weekly Occupancy
+        </h3>
+        <span className="text-sm bg-primary/20 border border-primary/30 text-primary px-3 py-1 rounded-full">
+          78% Avg
+        </span>
+      </div>
       <ResponsiveContainer width="100%" height={300}>
         <LineChart data={data}>
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-          <XAxis dataKey="date" stroke="rgba(255,255,255,0.6)" />
-          <YAxis stroke="rgba(255,255,255,0.6)" />
+          <CartesianGrid strokeDasharray="3 3" stroke="#242839" />
+          <XAxis 
+            dataKey="date" 
+            stroke="#8e92a3"
+            style={{ fontSize: '12px' }}
+          />
+          <YAxis 
+            stroke="#8e92a3"
+            style={{ fontSize: '12px' }}
+          />
           <Tooltip
             contentStyle={{
-              backgroundColor: 'rgba(0,0,0,0.8)',
-              border: '1px solid rgba(255,215,0,0.2)',
+              backgroundColor: '#14172c',
+              border: '1px solid #242839',
               borderRadius: '8px',
             }}
-            labelStyle={{ color: 'rgba(255,255,255,0.8)' }}
+            labelStyle={{ color: '#f0f0f0' }}
           />
           <Legend />
           <Line
             type="monotone"
             dataKey="occupancy"
-            stroke="rgb(255,215,0)"
-            strokeWidth={2}
-            dot={{ fill: 'rgb(255,215,0)', r: 4 }}
+            stroke="#d4a574"
+            strokeWidth={3}
+            dot={{ fill: '#d4a574', r: 5 }}
+            activeDot={{ r: 7 }}
           />
           <Line
             type="monotone"
             dataKey="available"
-            stroke="rgba(255,255,255,0.3)"
+            stroke="#8e92a3"
             strokeWidth={2}
-            dot={{ fill: 'rgba(255,255,255,0.3)', r: 4 }}
+            strokeDasharray="5 5"
+            dot={{ fill: '#8e92a3', r: 4 }}
           />
         </LineChart>
       </ResponsiveContainer>

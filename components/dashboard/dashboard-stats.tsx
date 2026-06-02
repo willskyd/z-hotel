@@ -22,24 +22,26 @@ const StatCard = ({
   trend?: number;
   icon: string;
 }) => (
-  <div className="card-premium">
-    <div className="flex items-start justify-between mb-4">
-      <div className="text-3xl">{icon}</div>
+  <div className="bg-card border border-border rounded-xl p-6 hover:border-primary/30 transition-all duration-300 group">
+    <div className="flex items-start justify-between mb-6">
+      <div className="w-12 h-12 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-2xl group-hover:bg-primary/20 transition-colors">
+        {icon}
+      </div>
       {trend !== undefined && (
         <span
-          className={`text-xs font-semibold px-2 py-1 rounded-full ${
+          className={`text-xs font-semibold px-3 py-1 rounded-full ${
             trend > 0
               ? 'bg-green-500/20 text-green-400'
               : 'bg-red-500/20 text-red-400'
           }`}
         >
-          {trend > 0 ? '+' : ''}{trend}%
+          {trend > 0 ? '↑' : '↓'} {Math.abs(trend)}%
         </span>
       )}
     </div>
-    <p className="text-muted-foreground text-sm mb-1">{title}</p>
-    <p className="text-3xl font-bold text-foreground">
-      {value}{suffix}
+    <p className="text-muted-foreground text-sm font-medium mb-2">{title}</p>
+    <p className="text-4xl font-bold text-foreground">
+      {value}<span className="text-xl text-muted-foreground ml-1">{suffix}</span>
     </p>
   </div>
 );

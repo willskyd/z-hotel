@@ -43,25 +43,49 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      {/* Page Header */}
-      <div>
-        <h1 className="text-3xl font-bold gradient-text mb-2">Dashboard</h1>
-        <p className="text-muted-foreground">
-          Welcome back! Here{"'"}s what{"'"}s happening with your hotel today.
-        </p>
+      {/* Welcome Banner */}
+      <div className="relative bg-gradient-to-r from-primary/20 to-accent/20 border border-primary/30 rounded-2xl p-8 overflow-hidden">
+        {/* Decorative Elements */}
+        <div className="absolute top-0 right-0 w-96 h-96 bg-primary/5 rounded-full blur-3xl -z-10"></div>
+        
+        <div className="flex items-center justify-between">
+          <div className="z-10">
+            <div className="inline-block px-3 py-1 bg-primary/20 border border-primary/40 rounded-full text-xs font-semibold text-primary mb-4">
+              Welcome Back
+            </div>
+            <h1 className="text-4xl font-bold text-foreground mb-3">
+              Your Hotel Dashboard
+            </h1>
+            <p className="text-lg text-muted-foreground max-w-2xl">
+              Get a complete overview of your property operations, manage reservations, and track key performance metrics in real-time.
+            </p>
+          </div>
+          <div className="hidden lg:flex h-32 w-32 rounded-2xl bg-primary/10 border border-primary/20 items-center justify-center">
+            <div className="text-5xl">📊</div>
+          </div>
+        </div>
       </div>
 
       {/* Key Statistics */}
-      <DashboardStats stats={stats} />
+      <div>
+        <h2 className="text-lg font-semibold text-foreground mb-4">Key Metrics</h2>
+        <DashboardStats stats={stats} />
+      </div>
 
       {/* Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <OccupancyChart />
-        <RevenueChart />
+      <div>
+        <h2 className="text-lg font-semibold text-foreground mb-4">Performance Insights</h2>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <OccupancyChart />
+          <RevenueChart />
+        </div>
       </div>
 
       {/* Recent Reservations */}
-      <RecentReservations reservations={reservations} />
+      <div>
+        <h2 className="text-lg font-semibold text-foreground mb-4">Recent Activity</h2>
+        <RecentReservations reservations={reservations} />
+      </div>
     </div>
   );
 }
