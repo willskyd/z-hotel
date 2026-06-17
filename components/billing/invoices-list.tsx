@@ -1,3 +1,8 @@
+'use client';
+
+import { Download } from 'lucide-react';
+import { formatNaira } from '@/lib/utils';
+
 interface Invoice {
   id: string;
   invoiceNo: string;
@@ -8,73 +13,56 @@ interface Invoice {
   paymentMethod: string;
 }
 
-interface InvoicesListProps {
-  invoices: Invoice[];
-}
-
-const getStatusColor = (status: string) => {
-  switch (status) {
-    case 'paid':
-      return 'bg-green-500/20 text-green-400 border-green-500/30';
-    case 'pending':
-      return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
-    case 'overdue':
-      return 'bg-red-500/20 text-red-400 border-red-500/30';
-    default:
-      return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
-  }
+const STATUS_MAP: Record<string, { label: string; classes: string }> = {
+  paid: { label: 'Paid', classes: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/25' },
+  pending: { label: 'Pending', classes: 'bg-amber-500/15 text-amber-400 border-amber-500/25' },
+  overdue: { label: 'Overdue', classes: 'bg-red-500/15 text-red-400 border-red-500/25' },
+  partial: { label: 'Partial', classes: 'bg-blue-500/15 text-blue-400 border-blue-500/25' },
 };
 
-export default function InvoicesList({ invoices }: InvoicesListProps) {
+export default function InvoicesList({ invoices }: { invoices: Invoice[] }) {
   return (
-    <div className="card-premium">
-      <h3 className="text-lg font-semibold text-foreground mb-6">
-        Recent Invoices
-      </h3>
+    <div className="bg-card border border-border rounded-2xl overflow-hidden hover:border-primary/20 transition-all duration-300">
+      <div className="px-6 py-4 border-b border-border">
+        <h3 className="text-sm font-semibold text-foreground">Recent Invoices</h3>
+      </div>
       <div className="overflow-x-auto">
-        <table className="table-premium">
+        <table className="w-full">
           <thead>
-            <tr>
-              <th>Invoice No.</th>
-              <th>Guest Name</th>
-              <th>Amount</th>
-              <th>Date</th>
-              <th>Payment Method</th>
-              <th>Status</th>
-              <th>Action</th>
+            <tr className="border-b border-border bg-secondary/30">
+              <th className="px-6 py-3 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Invoice</th>
+              <th className="px-4 py-3 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Guest</th>
+              <th className="px-4 py-3 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Amount</th>
+              <th className="px-4 py-3 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Date</th>
+              <th className="px-4 py-3 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Method</th>
+              <th className="px-4 py-3 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Status</th>
+              <th className="px-4 py-3" />
             </tr>
           </thead>
           <tbody>
-            {invoices.map((invoice) => (
-              <tr key={invoice.id}>
-                <td className="font-medium text-foreground">
-                  {invoice.invoiceNo}
-                </td>
-                <td className="text-foreground">{invoice.guestName}</td>
-                <td className="font-semibold text-primary">
-                  ${invoice.amount}
-                </td>
-                <td className="text-muted-foreground">{invoice.date}</td>
-                <td className="text-muted-foreground">
-                  {invoice.paymentMethod}
-                </td>
-                <td>
-                  <span
-                    className={`text-xs font-semibold px-3 py-1 rounded-full border ${getStatusColor(
-                      invoice.status
-                    )}`}
-                  >
-                    {invoice.status.charAt(0).toUpperCase() +
-                      invoice.status.slice(1)}
-                  </span>
-                </td>
-                <td>
-                  <button className="text-primary hover:text-primary/80 text-sm font-medium transition-colors">
-                    Download
-                  </button>
-                </td>
-              </tr>
-            ))}
+            {invoices.map((inv, i) => {
+              const s = STATUS_MAP[inv.status] ?? STATUS_MAP['pending'];
+              return (
+                <tr
+                  key={inv.id}
+                  className={`hover:bg-secondary/40 transition-colors ${i < invoices.length - 1 ? 'border-b border-border/50' : ''}`}
+                >
+                  <td className="px-6 py-4 font-mono text-sm text-foreground font-medium">{inv.invoiceNo}</td>
+                  <td className="px-4 py-4 text-sm text-foreground">{inv.guestName}</td>
+                  <td className="px-4 py-4 text-sm font-bold text-primary">{formatNaira(inv.amount)}</td>
+                  <td className="px-4 py-4 text-sm text-muted-foreground">{inv.date}</td>
+                  <td className="px-4 py-4 text-sm text-muted-foreground capitalize">{inv.paymentMethod}</td>
+                  <td className="px-4 py-4">
+                    <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full border ${s.classes}`}>{s.label}</span>
+                  </td>
+                  <td className="px-4 py-4">
+                    <button className="flex items-center gap-1.5 text-xs text-primary hover:text-accent font-medium transition-colors">
+                      <Download size={12} /> PDF
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

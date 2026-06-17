@@ -1,3 +1,5 @@
+import { formatNaira } from '@/lib/utils';
+
 interface Reservation {
   id: string;
   reservationId: string;
@@ -78,7 +80,7 @@ export default function ReservationsList({
             <div>
               <p className="text-xs text-muted-foreground mb-1">Total Price</p>
               <p className="text-lg font-bold text-primary">
-                ${reservation.totalPrice}
+                {formatNaira(reservation.totalPrice)}
               </p>
             </div>
 
