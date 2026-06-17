@@ -81,6 +81,45 @@
   --sidebar-ring: #d4a574;
 }
 
+/* Light theme overrides */
+.light {
+  --background: #f5f7ff;
+  --foreground: #0a0e1a;
+  --card: #ffffff;
+  --card-foreground: #0a0e1a;
+  --popover: #ffffff;
+  --popover-foreground: #0a0e1a;
+  --primary: #b8793a;
+  --primary-foreground: #ffffff;
+  --secondary: #edf0fb;
+  --secondary-foreground: #1a1f3a;
+  --muted: #e4e7f5;
+  --muted-foreground: #6b7080;
+  --accent: #a0682e;
+  --accent-foreground: #ffffff;
+  --destructive: #dc2626;
+  --destructive-foreground: #ffffff;
+  --border: #dce0f0;
+  --input: #ffffff;
+  --ring: #b8793a;
+  --chart-1: #b8793a;
+  --chart-2: #6366f1;
+  --chart-3: #3b82f6;
+  --chart-4: #8b5cf6;
+  --chart-5: #ec4899;
+  --sidebar-icon: #8892a4;
+  --sidebar-icon-bg: #edf0fb;
+  --sidebar-icon-hover: #b8793a;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #0a0e1a;
+  --sidebar-primary: #b8793a;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #edf0fb;
+  --sidebar-accent-foreground: #b8793a;
+  --sidebar-border: #dce0f0;
+  --sidebar-ring: #b8793a;
+}
+
 @theme inline {
   --font-sans: 'Geist', 'Geist Fallback';
   --font-mono: 'Geist Mono', 'Geist Mono Fallback';

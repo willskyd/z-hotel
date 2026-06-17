@@ -154,24 +154,7 @@ export default function LoginPage() {
               </button>
             </form>
 
-            {/* Demo Credentials */}
-            <div className="pt-6 border-t border-border">
-              <p className="text-xs text-muted-foreground text-center mb-3">
-                Demo Credentials
-              </p>
-              <div className="space-y-2 text-xs bg-secondary/40 p-4 rounded-lg border border-border">
-                <div className="text-foreground">
-                  <p className="font-medium mb-1">Manager Account:</p>
-                  <p className="text-muted-foreground">Email: manager@hotel.com</p>
-                  <p className="text-muted-foreground">Password: password123</p>
-                </div>
-                <div className="text-foreground pt-3 border-t border-border">
-                  <p className="font-medium mb-1">Staff Account:</p>
-                  <p className="text-muted-foreground">Email: staff@hotel.com</p>
-                  <p className="text-muted-foreground">Password: password123</p>
-                </div>
-              </div>
-            </div>
+   
           </div>
 
           {/* Footer */}

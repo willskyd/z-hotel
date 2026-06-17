@@ -2,6 +2,7 @@
 
 import { SidebarProvider, useSidebar } from '@/lib/sidebar-context';
 import { NotificationProvider } from '@/lib/notification-context';
+import { ThemeProvider } from '@/lib/theme-context';
 import { IconSidebar } from './icon-sidebar';
 import { TopHeader } from './top-header';
 import ProtectedRoute from '@/components/auth/protected-route';
@@ -24,6 +25,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
 
 export function DashboardShell({ children }: { children: React.ReactNode }) {
   return (
+    <ThemeProvider>
     <NotificationProvider>
       <SidebarProvider>
         <ProtectedRoute>
@@ -33,5 +35,6 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         </ProtectedRoute>
       </SidebarProvider>
     </NotificationProvider>
+    </ThemeProvider>
   );
 }

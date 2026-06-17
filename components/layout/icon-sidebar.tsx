@@ -133,8 +133,13 @@ export function IconSidebar() {
       {/* Bottom Actions */}
       <div className="p-2 pb-3 space-y-0.5 shrink-0">
         <button
+          onClick={() => router.push('/dashboard/settings')}
           title={!expanded ? 'Settings' : undefined}
-          className="w-full flex items-center gap-3 px-2 py-2.5 rounded-xl text-sidebar-icon hover:bg-sidebar-icon-bg hover:text-foreground transition-all group"
+          className={`w-full flex items-center gap-3 px-2 py-2.5 rounded-xl transition-all duration-200 group ${
+            isActive('/dashboard/settings', false)
+              ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/25'
+              : 'text-sidebar-icon hover:bg-sidebar-icon-bg hover:text-foreground'
+          }`}
         >
           <Settings size={18} className="shrink-0 group-hover:rotate-45 transition-transform duration-300" />
           <span
