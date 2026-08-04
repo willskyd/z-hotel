@@ -1,9 +1,13 @@
 import { MongoClient, Db } from 'mongodb';
 
-const MONGODB_URI = process.env.MONGODB_URI;
+function getMongoUri(): string {
+  const uri = process.env.MONGODB_URI;
 
-if (!MONGODB_URI) {
-  throw new Error('Please define the MONGODB_URI environment variable');
+  if (!uri) {
+    throw new Error('Please define the MONGODB_URI environment variable');
+  }
+
+  return uri;
 }
 
 let cachedClient: MongoClient | null = null;
@@ -15,7 +19,7 @@ export async function connectToDatabase() {
   }
 
   try {
-    const client = new MongoClient(MONGODB_URI);
+    const client = new MongoClient(getMongoUri());
     await client.connect();
     const db = client.db(); // Uses the database from the connection string (hotel-mgmt)
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { Eye, Crown, Shield } from 'lucide-react';
+import { Eye, Crown, Shield, Users } from 'lucide-react';
 import { formatNairaCompact } from '@/lib/utils';
 
 export interface GovernmentDoc {

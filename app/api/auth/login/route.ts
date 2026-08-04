@@ -61,9 +61,15 @@ export async function POST(request: NextRequest) {
     );
   } catch (error) {
     console.error('[v0] Login error:', error);
+    const message = error instanceof Error ? error.message : '';
+    const status = message.includes('MONGODB_URI') ? 503 : 500;
     return NextResponse.json(
-      { error: 'Login failed' },
-      { status: 500 }
+      {
+        error: message.includes('MONGODB_URI')
+          ? 'Database is not configured. Set MONGODB_URI in .env.local.'
+          : 'Login service is temporarily unavailable. Check the database connection.',
+      },
+      { status }
     );
   }
 }
