@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDatabase } from '@/lib/mongodb';
+import { describeMongoError, getDatabase } from '@/lib/mongodb';
 import { hashPassword } from '@/lib/auth';
 import { ObjectId } from 'mongodb';
 
@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     );
   } catch (error) {
-    console.error('[v0] Registration error:', error);
+    console.error('[auth] Registration request failed:', describeMongoError(error));
     return NextResponse.json(
       { error: 'Registration failed' },
       { status: 500 }

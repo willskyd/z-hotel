@@ -8,7 +8,7 @@ type DocType = 'NIN' | 'Passport' | 'Driver License' | 'Voter ID';
 
 interface AddGuestModalProps {
   onClose: () => void;
-  onSubmit: (data: Omit<Guest, 'id' | 'totalStays' | 'lastVisit' | 'totalRevenue' | 'stayHistory' | 'stayComments'>) => void;
+  onSubmit: (data: Omit<Guest, 'id' | 'totalStays' | 'lastVisit' | 'totalRevenue' | 'stayHistory' | 'stayComments'>) => Promise<void>;
 }
 
 const DOC_TYPES: DocType[] = ['NIN', 'Passport', 'Driver License', 'Voter ID'];
@@ -23,6 +23,8 @@ export default function AddGuestModal({ onClose, onSubmit }: AddGuestModalProps)
   });
   const [showDocs, setShowDocs] = useState(false);
   const [docs, setDocs] = useState<GovernmentDoc[]>([]);
+  const [isSaving, setIsSaving] = useState(false);
+  const [submitError, setSubmitError] = useState('');
   const fileRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   const set = (field: string, value: string) =>
@@ -44,10 +46,23 @@ export default function AddGuestModal({ onClose, onSubmit }: AddGuestModalProps)
     reader.readAsDataURL(file);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSubmit({ ...basicData, governmentDocs: docs });
-  };
+  const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  if (isSaving) return;
+
+  setIsSaving(true);
+  setSubmitError('');
+
+  try {
+    await onSubmit({ ...basicData, governmentDocs: docs });
+  } catch (error) {
+    setSubmitError(
+      error instanceof Error ? error.message : 'Failed to register guest.'
+    );
+  } finally {
+    setIsSaving(false);
+  }
+};
 
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={onClose}>
@@ -242,6 +257,11 @@ export default function AddGuestModal({ onClose, onSubmit }: AddGuestModalProps)
               )}
             </div>
           </form>
+          {submitError && (
+  <p role="alert" className="text-sm text-red-500">
+    {submitError}
+  </p>
+     )}
         </div>
 
         {/* Footer */}
@@ -254,11 +274,12 @@ export default function AddGuestModal({ onClose, onSubmit }: AddGuestModalProps)
             Cancel
           </button>
           <button
+            disabled={isSaving}
             type="submit"
             form="add-guest-form"
             className="flex-1 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:shadow-lg hover:shadow-primary/30 transition-all"
           >
-            Register Guest
+            {isSaving ? 'Saving Guest...' : 'Register Guest'}
           </button>
         </div>
       </div>

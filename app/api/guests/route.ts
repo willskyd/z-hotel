@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { firstName, lastName, email, phone, address, city, country, passportNumber } = body;
+    const { firstName, lastName, email, phone, address, city, country, passportNumber, governmentDocs, } = body;
 
     if (!firstName || !lastName || !email) {
       return NextResponse.json(
@@ -45,7 +45,10 @@ export async function POST(request: NextRequest) {
     const guestsCollection = db.collection('guests');
 
     // Check if guest already exists
-    const existingGuest = await guestsCollection.findOne({ email });
+    const normalizedEmail = String(email).trim().toLowerCase();
+    const existingGuest = await guestsCollection.findOne({
+    email: normalizedEmail, 
+   });
     if (existingGuest) {
       return NextResponse.json(
         { error: 'Guest already exists' },
@@ -54,18 +57,29 @@ export async function POST(request: NextRequest) {
     }
 
     const newGuest = {
-      _id: new ObjectId(),
-      firstName,
-      lastName,
-      email,
-      phone: phone || '',
-      address: address || '',
-      city: city || '',
-      country: country || '',
-      passportNumber: passportNumber || '',
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
+  _id: new ObjectId(),
+  firstName: String(firstName).trim(),
+  lastName: String(lastName).trim(),
+  email: String(email).trim().toLowerCase(),
+  phone: phone || '',
+  address: address || '',
+  city: city || '',
+  country: country || '',
+  passportNumber: passportNumber || '',
+  governmentDocs: Array.isArray(governmentDocs)
+    ? governmentDocs.map((doc: { type?: string; number?: string }) => ({
+        type: doc.type || '',
+        number: doc.number || '',
+      }))
+    : [],
+  totalStays: 0,
+  lastVisit: null,
+  totalRevenue: 0,
+  stayComments: [],
+  stayHistory: [],
+  createdAt: new Date(),
+  updatedAt: new Date(),
+};
 
     await guestsCollection.insertOne(newGuest);
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Search, SlidersHorizontal, UserPlus, TrendingDown, TrendingUp } from 'lucide-react';
 import GuestsList, { Guest } from '@/components/guests/guests-list';
 import AddGuestModal from '@/components/guests/add-guest-modal';
@@ -122,25 +122,73 @@ const MOCK_GUESTS: Guest[] = [
 type SortKey = 'name' | 'revenue' | 'stays' | 'lastVisit';
 
 export default function GuestsPage() {
-  const [guests, setGuests] = useState<Guest[]>(MOCK_GUESTS);
+  const [guests, setGuests] = useState<Guest[]>([]);
+  const [isLoadingGuests, setIsLoadingGuests] = useState(true);
+  const [guestError, setGuestError] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedGuest, setSelectedGuest] = useState<Guest | null>(null);
   const [search, setSearch] = useState('');
   const [sortKey, setSortKey] = useState<SortKey>('revenue');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
 
-  const handleAddGuest = (data: Omit<Guest, 'id' | 'totalStays' | 'lastVisit' | 'totalRevenue' | 'stayHistory' | 'stayComments'>) => {
+ const handleAddGuest = async (
+  data: Omit<
+    Guest,
+    'id' | 'totalStays' | 'lastVisit' | 'totalRevenue' | 'stayHistory' | 'stayComments'
+  >
+) => {
+  try {
+    const token = localStorage.getItem('accessToken');
+
+    if (!token) {
+      setGuestError('Please log in before adding a guest.');
+      return;
+    }
+
+    // Do not send uploaded ID photos as base64 data.
+    const governmentDocs = (data.governmentDocs ?? []).map(
+      ({ type, number }) => ({ type, number })
+    );
+
+    const response = await fetch('/api/guests', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        ...data,
+        governmentDocs,
+      }),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.error || 'Failed to save guest.');
+    }
+
     const newGuest: Guest = {
-      ...data,
-      id: String(guests.length + 1),
-      totalStays: 0,
-      lastVisit: '—',
-      totalRevenue: 0,
-      stayHistory: [],
-      stayComments: [],
+      ...result,
+      id: String(result._id),
+      totalStays: result.totalStays ?? 0,
+      lastVisit: result.lastVisit ?? '—',
+      totalRevenue: result.totalRevenue ?? 0,
+      governmentDocs: result.governmentDocs ?? governmentDocs,
+      stayComments: result.stayComments ?? [],
+      stayHistory: result.stayHistory ?? [],
     };
-    setGuests([newGuest, ...guests]);
+
+    setGuests((previous) => [newGuest, ...previous]);
     setShowAddModal(false);
+    setGuestError('');
+  } catch (error) {
+  const message =
+    error instanceof Error ? error.message : 'Unable to save guest.';
+
+  setGuestError(message);
+  throw new Error(message);
+   }
   };
 
   const handleUpdateComment = (guestId: string, commentIdx: number, newText: string) => {
@@ -205,6 +253,55 @@ export default function GuestsPage() {
     avgRevenuePerGuest: guests.length ? Math.round(guests.reduce((s, g) => s + g.totalRevenue, 0) / guests.length) : 0,
     returnRate: Math.round((guests.filter((g) => g.totalStays > 1).length / Math.max(guests.length, 1)) * 100),
   };
+  useEffect(() => {
+  const loadGuests = async () => {
+    try {
+      const token = localStorage.getItem('accessToken');
+
+      if (!token) {
+        setGuestError('Please log in to view guests.');
+        return;
+      }
+
+      const response = await fetch('/api/guests', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to load guests from the database.');
+      }
+
+      const records = await response.json();
+
+      const mappedGuests: Guest[] = records.map((record: any) => ({
+        id: String(record._id),
+        firstName: record.firstName ?? '',
+        lastName: record.lastName ?? '',
+        email: record.email ?? '',
+        phone: record.phone ?? '',
+        country: record.country ?? '',
+        totalStays: record.totalStays ?? 0,
+        lastVisit: record.lastVisit ?? '—',
+        totalRevenue: record.totalRevenue ?? 0,
+        governmentDocs: record.governmentDocs ?? [],
+        stayComments: record.stayComments ?? [],
+        stayHistory: record.stayHistory ?? [],
+      }));
+
+      setGuests(mappedGuests);
+    } catch (error) {
+      setGuestError(
+        error instanceof Error ? error.message : 'Unable to load guests.'
+      );
+    } finally {
+      setIsLoadingGuests(false);
+    }
+  };
+
+  loadGuests();
+}, []);
 
   return (
     <div className="space-y-6 max-w-[1400px]">
@@ -264,6 +361,14 @@ export default function GuestsPage() {
         </div>
       </div>
 
+
+     {isLoadingGuests && (
+     <p className="py-4 text-sm text-muted-foreground">Loading guests...</p>
+      )}
+
+      {guestError && (
+      <p className="py-3 text-sm text-red-500">{guestError}</p>
+       )}
       {/* Guest Table */}
       <GuestsList guests={filtered} onViewProfile={setSelectedGuest} />
 

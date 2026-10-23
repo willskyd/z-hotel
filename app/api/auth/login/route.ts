@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDatabase } from '@/lib/mongodb';
+import { describeMongoError, getDatabase } from '@/lib/mongodb';
 import { verifyPassword, generateToken, generateRefreshToken } from '@/lib/auth';
 
 export async function POST(request: NextRequest) {
@@ -14,7 +14,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const db = await getDatabase();
+    let db: Awaited<ReturnType<typeof getDatabase>>;
+    try {
+      db = await getDatabase();
+    } catch (error) {
+      // Keep connection details in server logs; return a useful, safe message to the client.
+      console.error('[auth] Database connection failed:', describeMongoError(error));
+      return NextResponse.json(
+        {
+          error: 'Database connection is unavailable. Check the server MONGODB_URI and database network access.',
+        },
+        { status: 503 }
+      );
+    }
     const usersCollection = db.collection('users');
 
     // Find user
@@ -60,16 +72,10 @@ export async function POST(request: NextRequest) {
       { status: 200 }
     );
   } catch (error) {
-    console.error('[v0] Login error:', error);
-    const message = error instanceof Error ? error.message : '';
-    const status = message.includes('MONGODB_URI') ? 503 : 500;
+    console.error('[auth] Login request failed:', describeMongoError(error));
     return NextResponse.json(
-      {
-        error: message.includes('MONGODB_URI')
-          ? 'Database is not configured. Set MONGODB_URI in .env.local.'
-          : 'Login service is temporarily unavailable. Check the database connection.',
-      },
-      { status }
+      { error: 'Login service is temporarily unavailable. Please try again.' },
+      { status: 500 }
     );
   }
 }

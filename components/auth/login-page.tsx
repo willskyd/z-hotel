@@ -22,7 +22,7 @@ export default function LoginPage() {
       await login(email, password);
       router.push('/dashboard');
     } catch (err) {
-      setError('Invalid email or password');
+      setError(err instanceof Error ? err.message : 'Sign in failed. Please try again.');
       console.error('[v0] Login error:', err);
     } finally {
       setIsLoading(false);

@@ -3,6 +3,7 @@
 import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
 import {
+  UserCog,
   LayoutDashboard,
   BedDouble,
   Users,
@@ -18,6 +19,15 @@ import {
 import { useSidebar } from '@/lib/sidebar-context';
 import { useAuth } from '@/lib/auth-context';
 
+ const USER_ADMIN_NAV_ITEMS = [
+  {
+    icon: UserCog,
+    label: 'User Management',
+    href: '/dashboard/users',
+    id: 'users-admin',
+    exact: false,
+  },
+];
 const NAV_ITEMS = [
   { icon: LayoutDashboard, label: 'Dashboard',    href: '/dashboard',              id: 'dashboard',    exact: true  },
   { icon: BedDouble,       label: 'Rooms',        href: '/dashboard/rooms',        id: 'rooms',        exact: false },
@@ -49,7 +59,11 @@ export function IconSidebar() {
 
   const canSeeAdminNav = user?.role === 'admin' || user?.role === 'manager';
 
-  const allItems = canSeeAdminNav ? [...NAV_ITEMS, ...ADMIN_NAV_ITEMS] : NAV_ITEMS;
+  const allItems = [
+  ...NAV_ITEMS,
+  ...(user?.role === 'admin' ? USER_ADMIN_NAV_ITEMS : []),
+  ...(canSeeAdminNav ? ADMIN_NAV_ITEMS : []),
+];
 
   return (
     <aside
