@@ -33,7 +33,7 @@ const NAV_ITEMS = [
   { icon: BedDouble,       label: 'Rooms',        href: '/dashboard/rooms',        id: 'rooms',        exact: false },
   { icon: Calendar,        label: 'Reservations', href: '/dashboard/reservations', id: 'reservations', exact: false },
   { icon: Users,           label: 'Guests',       href: '/dashboard/guests',       id: 'guests',       exact: false },
-  { icon: ConciergeBell,   label: 'Front Desk',   href: '/dashboard/front-desk',   id: 'frontdesk',    exact: false },
+  { icon: ConciergeBell,   label: 'Receptionist', href: '/dashboard/front-desk',   id: 'frontdesk',    exact: false },
   { icon: Wallet,          label: 'Billing',      href: '/dashboard/billing',      id: 'billing',      exact: false },
 ];
 
@@ -68,7 +68,7 @@ export function IconSidebar() {
   return (
     <aside
       style={{ width: expanded ? '240px' : '64px' }}
-      className="fixed left-0 top-0 h-screen bg-sidebar border-r border-sidebar-border z-40 flex flex-col overflow-hidden transition-[width] duration-300 ease-in-out shadow-2xl shadow-black/30"
+      className="fixed left-0 top-0 h-screen bg-sidebar border-r border-sidebar-border z-40 flex flex-col overflow-hidden transition-none md:transition-[width] md:duration-300 md:ease-in-out shadow-2xl shadow-black/30"
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => {
         setHovered(false);
@@ -166,8 +166,8 @@ export function IconSidebar() {
 
         <div className="relative">
           <button
-            onClick={() => setShowLogout(!showLogout)}
-            title={!expanded ? 'Logout' : undefined}
+            onClick={handleLogout}
+            title={!expanded ? 'Sign Out' : undefined}
             className="w-full flex items-center gap-3 px-2 py-2.5 rounded-xl text-sidebar-icon hover:bg-destructive/15 hover:text-red-400 transition-all group"
           >
             <LogOut size={18} className="shrink-0 group-hover:translate-x-0.5 transition-transform duration-200" />
@@ -175,7 +175,7 @@ export function IconSidebar() {
               className="text-sm font-medium whitespace-nowrap overflow-hidden transition-all duration-300"
               style={{ opacity: expanded ? 1 : 0, maxWidth: expanded ? '160px' : '0px' }}
             >
-              Logout
+              Sign Out
             </span>
           </button>
           {showLogout && (

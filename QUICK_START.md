@@ -61,7 +61,7 @@ Password: password123
 | `/dashboard/rooms` | Room Management |
 | `/dashboard/reservations` | Bookings |
 | `/dashboard/guests` | Guest CRM |
-| `/dashboard/front-desk` | Check-in/out |
+| `/dashboard/front-desk` | Receptionist: walk-ins, arrivals, stays, and departures |
 | `/dashboard/billing` | Payments |
 
 ---
@@ -76,6 +76,7 @@ Password: password123
 - `GET/POST /api/rooms` - Room operations
 - `GET/POST /api/reservations` - Booking operations
 - `GET/POST /api/guests` - Guest operations
+- `GET/POST /api/receptionist` - Reception workflow and stay operations
 
 ---
 
@@ -105,11 +106,15 @@ Password: password123
 - 📞 Contact info
 - 🌍 Location data
 
-### Front Desk
-- ✅ Check-in process
-- ❌ Check-out process
-- 🔑 Room management
-- 📋 Guest requests
+### Receptionist
+- Register and check in walk-in guests
+- Check in reservations due to arrive
+- Review upcoming reservations and current in-house guests
+- Track expected checkout times and overdue departures
+- Search and inspect paginated checkout history with date and room filters
+- Extend an in-house stay with conflict checking and preserved extension history
+- Confirm checkout; rooms then move to Cleaning
+- View current room availability and operational status
 
 ### Billing
 - 💵 Invoice tracking
@@ -182,9 +187,24 @@ pnpm dev
 
 ### Check-in a Guest
 1. Visit `/dashboard/front-desk`
-2. Find guest in "Checked-In Guests"
-3. Click "Room Key"
-4. Confirm check-in
+2. To register a walk-in, choose "New Walk-In", complete the guest and stay details, and submit.
+3. For an existing booking, open "Today's Arrivals" and select "Check In" when the guest is due.
+4. Confirm the guest appears in "In-House" and the room is Occupied.
+
+### Check-out a Guest
+1. Open "Today's Departures" or "In-House" in the Receptionist area.
+2. Select "Check Out" and confirm the operation.
+3. The stay is recorded as completed and the room moves to Cleaning until housekeeping marks it available.
+
+### Retain a Room
+1. Open "In-House" in the Receptionist area and select "Retain Room" for the active guest.
+2. Choose a new checkout time later than the current expected checkout and review the estimated additional charge.
+3. Confirm the extension. A conflicting reservation prevents the extension; the guest remains in the same occupied room.
+
+### Review Checkout History
+1. Scroll to "Checkout History" in the Receptionist area.
+2. Search by guest, room, guest reference, or stay reference, or filter by checkout date, room, and room type.
+3. Select a record to review its available stay, checkout, staff, and extension details.
 
 ---
 

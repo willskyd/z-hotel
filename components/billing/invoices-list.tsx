@@ -1,6 +1,6 @@
 'use client';
 
-import { Download } from 'lucide-react';
+import { ChevronDown, Download } from 'lucide-react';
 import { formatNaira } from '@/lib/utils';
 
 interface Invoice {
@@ -21,51 +21,95 @@ const STATUS_MAP: Record<string, { label: string; classes: string }> = {
 };
 
 export default function InvoicesList({ invoices }: { invoices: Invoice[] }) {
+  const downloadInvoice = (invoice: Invoice) => {
+    const status = STATUS_MAP[invoice.status]?.label ?? invoice.status;
+    const lines = [
+      'Zinuel Hotel - Invoice',
+      `Invoice: ${invoice.invoiceNo}`,
+      `Guest: ${invoice.guestName}`,
+      `Amount: NGN ${invoice.amount.toLocaleString('en-NG')}`,
+      `Date: ${invoice.date}`,
+      `Payment method: ${invoice.paymentMethod}`,
+      `Status: ${status}`,
+    ];
+    const escapePdfText = (value: string) => value
+      .replace(/[^\x20-\x7E]/g, '?')
+      .replace(/[\\()]/g, '\\$&');
+    const textCommands = lines.map((line, index) =>
+      `BT /F1 ${index === 0 ? 16 : 11} Tf 50 ${790 - index * 32} Td (${escapePdfText(line)}) Tj ET`,
+    ).join('\n');
+    const content = `${textCommands}\n`;
+    const objects = [
+      '<< /Type /Catalog /Pages 2 0 R >>',
+      '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+      '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>',
+      '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',
+      `<< /Length ${content.length} >>\nstream\n${content}endstream`,
+    ];
+    let pdf = '%PDF-1.4\n';
+    const offsets = [0];
+    objects.forEach((object, index) => {
+      offsets.push(pdf.length);
+      pdf += `${index + 1} 0 obj\n${object}\nendobj\n`;
+    });
+    const xrefOffset = pdf.length;
+    pdf += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
+    pdf += offsets.slice(1).map((offset) => `${String(offset).padStart(10, '0')} 00000 n \n`).join('');
+    pdf += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`;
+
+    const url = URL.createObjectURL(new Blob([pdf], { type: 'application/pdf' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${invoice.invoiceNo.replace(/[^a-zA-Z0-9_-]/g, '_')}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
+
   return (
-    <div className="bg-card border border-border rounded-2xl overflow-hidden hover:border-primary/20 transition-all duration-300">
-      <div className="px-6 py-4 border-b border-border">
+    <section className="overflow-hidden rounded-2xl border border-border bg-card transition-colors hover:border-primary/20">
+      <div className="border-b border-border px-4 py-3 sm:px-6 sm:py-4">
         <h3 className="text-sm font-semibold text-foreground">Recent Invoices</h3>
+        <p className="mt-0.5 text-xs text-muted-foreground">{invoices.length} invoice{invoices.length === 1 ? '' : 's'} · open an invoice for activity details</p>
       </div>
-      <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead>
-            <tr className="border-b border-border bg-secondary/30">
-              <th className="px-6 py-3 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Invoice</th>
-              <th className="px-4 py-3 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Guest</th>
-              <th className="px-4 py-3 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Amount</th>
-              <th className="px-4 py-3 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Date</th>
-              <th className="px-4 py-3 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Method</th>
-              <th className="px-4 py-3 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Status</th>
-              <th className="px-4 py-3" />
-            </tr>
-          </thead>
-          <tbody>
-            {invoices.map((inv, i) => {
-              const s = STATUS_MAP[inv.status] ?? STATUS_MAP['pending'];
-              return (
-                <tr
-                  key={inv.id}
-                  className={`hover:bg-secondary/40 transition-colors ${i < invoices.length - 1 ? 'border-b border-border/50' : ''}`}
-                >
-                  <td className="px-6 py-4 font-mono text-sm text-foreground font-medium">{inv.invoiceNo}</td>
-                  <td className="px-4 py-4 text-sm text-foreground">{inv.guestName}</td>
-                  <td className="px-4 py-4 text-sm font-bold text-primary">{formatNaira(inv.amount)}</td>
-                  <td className="px-4 py-4 text-sm text-muted-foreground">{inv.date}</td>
-                  <td className="px-4 py-4 text-sm text-muted-foreground capitalize">{inv.paymentMethod}</td>
-                  <td className="px-4 py-4">
-                    <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full border ${s.classes}`}>{s.label}</span>
-                  </td>
-                  <td className="px-4 py-4">
-                    <button className="flex items-center gap-1.5 text-xs text-primary hover:text-accent font-medium transition-colors">
-                      <Download size={12} /> PDF
-                    </button>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+      <div className="divide-y divide-border/60">
+        {invoices.length === 0 ? (
+          <p className="p-5 text-center text-sm text-muted-foreground">No recent invoices.</p>
+        ) : invoices.map((invoice) => {
+          const status = STATUS_MAP[invoice.status] ?? STATUS_MAP.pending;
+          return (
+            <details key={invoice.id} className="group min-w-0">
+              <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 hover:bg-secondary/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary sm:px-6 [&::-webkit-details-marker]:hidden">
+                <span className="min-w-0 flex-1">
+                  <span className="block break-all font-mono text-xs font-semibold text-foreground">{invoice.invoiceNo}</span>
+                  <span className="mt-1 block break-words text-sm text-muted-foreground">{invoice.guestName}</span>
+                </span>
+                <span className="flex shrink-0 items-center gap-2">
+                  <span className="hidden text-sm font-bold text-primary sm:inline">{formatNaira(invoice.amount)}</span>
+                  <span className={`whitespace-nowrap rounded-full border px-2 py-1 text-[10px] font-semibold ${status.classes}`}>{status.label}</span>
+                  <ChevronDown size={16} className="text-muted-foreground transition-transform group-open:rotate-180" />
+                </span>
+              </summary>
+              <div className="border-t border-border bg-secondary/20 px-4 py-3 sm:px-6">
+                <div className="grid grid-cols-2 gap-x-4 gap-y-3 text-xs sm:grid-cols-3">
+                  <div><p className="text-muted-foreground">Guest</p><p className="mt-0.5 break-words text-sm text-foreground">{invoice.guestName}</p></div>
+                  <div><p className="text-muted-foreground">Amount</p><p className="mt-0.5 text-sm font-bold text-primary">{formatNaira(invoice.amount)}</p></div>
+                  <div><p className="text-muted-foreground">Status</p><p className="mt-0.5 text-sm text-foreground">{status.label}</p></div>
+                  <div><p className="text-muted-foreground">Activity date</p><p className="mt-0.5 text-sm text-foreground">{invoice.date}</p></div>
+                  <div><p className="text-muted-foreground">Payment method</p><p className="mt-0.5 break-words text-sm capitalize text-foreground">{invoice.paymentMethod}</p></div>
+                  <div><p className="text-muted-foreground">Invoice reference</p><p className="mt-0.5 break-all font-mono text-sm text-foreground">{invoice.invoiceNo}</p></div>
+                </div>
+                <div className="mt-3 flex justify-end border-t border-border/60 pt-2">
+                  <button type="button" onClick={() => downloadInvoice(invoice)} className="flex min-h-9 items-center gap-1.5 rounded-lg px-3 text-xs font-semibold text-primary transition-colors hover:bg-primary/10 hover:text-accent">
+                    <Download size={13} /> Download PDF
+                  </button>
+                </div>
+              </div>
+            </details>
+          );
+        })}
       </div>
-    </div>
+    </section>
   );
 }

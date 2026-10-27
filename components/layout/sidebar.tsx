@@ -9,7 +9,7 @@ const menuItems = [
   { href: '/dashboard/reservations', label: 'Reservations', icon: '📅' },
   { href: '/dashboard/rooms', label: 'Rooms', icon: '🛏️' },
   { href: '/dashboard/guests', label: 'Guests', icon: '👥' },
-  { href: '/dashboard/front-desk', label: 'Front Desk', icon: '🏨' },
+  { href: '/dashboard/front-desk', label: 'Receptionist', icon: '🏨' },
   { href: '/dashboard/billing', label: 'Billing', icon: '💳' },
 ];
 

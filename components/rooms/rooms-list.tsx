@@ -26,7 +26,7 @@ interface RoomsListProps {
 
 export default function RoomsList({ rooms, onViewDetails }: RoomsListProps) {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+    <div className="grid min-w-0 grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 sm:gap-4">
       {rooms.map((room) => {
         const s = STATUS_MAP[room.status] ?? STATUS_MAP.available;
         const accent = TYPE_ACCENTS[room.type] ?? TYPE_ACCENTS.Standard;
@@ -34,22 +34,22 @@ export default function RoomsList({ rooms, onViewDetails }: RoomsListProps) {
         return (
           <div
             key={room.id}
-            className={"bg-card border border-border rounded-2xl p-5 cursor-pointer transition-all duration-300 group hover:shadow-lg " + accent.border + " relative overflow-hidden"}
+            className={"relative min-w-0 cursor-pointer overflow-hidden rounded-2xl border border-border bg-card p-4 transition-all duration-300 group hover:shadow-lg sm:p-5 " + accent.border}
             onClick={() => onViewDetails(room)}
           >
             <div className="absolute inset-0 bg-gradient-to-br from-primary/0 group-hover:from-primary/3 to-transparent transition-all duration-500 pointer-events-none rounded-2xl" />
             <div className="relative z-10">
-              <div className="flex items-start justify-between mb-4">
-                <div>
+                <div className="mb-4 flex min-w-0 items-start justify-between gap-2.5">
+                <div className="min-w-0">
                   <p className="text-xs text-muted-foreground mb-0.5">Room</p>
-                  <p className="text-2xl font-black text-foreground tracking-tight">#{room.roomNumber}</p>
+                  <p className="break-words text-xl font-black tracking-tight text-foreground sm:text-2xl">#{room.roomNumber}</p>
                 </div>
-                <div className="flex flex-col items-end gap-1.5">
-                  <span className={"inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full border " + s.badgeCls}>
+                <div className="flex max-w-[55%] shrink-0 flex-col items-end gap-1.5">
+                  <span className={"inline-flex max-w-full items-center gap-1.5 truncate rounded-full border px-2 py-1 text-[10px] font-semibold sm:px-2.5 sm:text-[11px] " + s.badgeCls}>
                     <span className={"w-1.5 h-1.5 rounded-full " + s.dotColor} />
                     {s.label}
                   </span>
-                  <span className={"text-[10px] font-semibold px-2 py-0.5 rounded-full bg-secondary border border-border " + accent.icon}>
+                  <span className={"max-w-full truncate rounded-full border border-border bg-secondary px-2 py-0.5 text-[10px] font-semibold " + accent.icon}>
                     {room.type}
                   </span>
                 </div>

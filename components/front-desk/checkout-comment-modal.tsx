@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { X, MessageSquare, Shield, AlertCircle } from 'lucide-react';
+import { X, MessageSquare, Shield } from 'lucide-react';
 import { formatNaira } from '@/lib/utils';
 
 interface CheckoutGuest {
@@ -15,26 +15,31 @@ interface CheckoutGuest {
 
 interface CheckoutCommentModalProps {
   guest: CheckoutGuest;
-  onConfirm: (guestId: string, comment: string) => void;
+  onConfirm: (guestId: string, comment: string) => void | Promise<void>;
   onCancel: () => void;
+  isSubmitting?: boolean;
+  error?: string;
 }
 
-export default function CheckoutCommentModal({ guest, onConfirm, onCancel }: CheckoutCommentModalProps) {
+export default function CheckoutCommentModal({ guest, onConfirm, onCancel, isSubmitting = false, error = '' }: CheckoutCommentModalProps) {
   const [comment, setComment] = useState('');
 
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="checkout-dialog-title"
         className="bg-card border border-border rounded-2xl w-full max-w-md shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-border">
           <div>
-            <h2 className="text-base font-bold text-foreground">Process Check-Out</h2>
+            <h2 id="checkout-dialog-title" className="text-base font-bold text-foreground">Process Check-Out</h2>
             <p className="text-xs text-muted-foreground mt-0.5">Room {guest.roomNumber} · {guest.nights} nights</p>
           </div>
-          <button onClick={onCancel} className="p-2 rounded-xl text-muted-foreground hover:bg-secondary transition-all">
+          <button onClick={onCancel} disabled={isSubmitting} aria-label="Close checkout confirmation" className="p-2 rounded-xl text-muted-foreground hover:bg-secondary transition-all disabled:opacity-50">
             <X size={16} />
           </button>
         </div>
@@ -55,6 +60,10 @@ export default function CheckoutCommentModal({ guest, onConfirm, onCancel }: Che
               <p className="text-lg font-bold text-foreground">{formatNaira(guest.totalBill)}</p>
               <p className="text-xs text-muted-foreground">Total bill</p>
             </div>
+            <p className="text-xs text-muted-foreground">
+              Confirming checkout records the departure time and moves the room to cleaning.
+            </p>
+            {error && <p role="alert" className="text-sm text-red-400">{error}</p>}
           </div>
 
           {/* Comment Section */}
@@ -89,15 +98,17 @@ export default function CheckoutCommentModal({ guest, onConfirm, onCancel }: Che
         <div className="flex gap-3 px-6 py-4 border-t border-border">
           <button
             onClick={onCancel}
+            disabled={isSubmitting}
             className="flex-1 px-4 py-2.5 rounded-xl border border-border text-sm text-foreground hover:bg-secondary transition-colors font-medium"
           >
             Cancel
           </button>
           <button
-            onClick={() => onConfirm(guest.id, comment)}
-            className="flex-1 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:shadow-lg hover:shadow-primary/30 transition-all"
+            onClick={() => void onConfirm(guest.id, comment)}
+            disabled={isSubmitting}
+            className="flex-1 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:shadow-lg hover:shadow-primary/30 transition-all disabled:opacity-50"
           >
-            Confirm Check-Out
+            {isSubmitting ? 'Processing…' : 'Confirm Check-Out'}
           </button>
         </div>
       </div>

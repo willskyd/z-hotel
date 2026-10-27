@@ -1,189 +1,119 @@
 'use client';
 
-import { useState } from 'react';
+import { FormEvent, useState } from 'react';
+
+type ReservationGuest = { _id: string; firstName: string; lastName: string; email?: string };
+type ReservationRoom = { _id: string; roomNumber: string; type: string; capacity: number; pricePerNight: number; status: string };
+type ReservationInput = {
+  guestId: string;
+  roomId: string;
+  checkInDate: string;
+  checkOutDate: string;
+  numberOfGuests: number;
+  totalPrice: number;
+  notes: string;
+};
 
 interface CreateReservationModalProps {
   onClose: () => void;
-  onSubmit: (data: any) => void;
+  onSubmit: (data: ReservationInput) => Promise<void>;
+  guests: ReservationGuest[];
+  rooms: ReservationRoom[];
 }
 
-export default function CreateReservationModal({
-  onClose,
-  onSubmit,
-}: CreateReservationModalProps) {
+const localDate = (date: Date) => {
+  const pad = (value: number) => String(value).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+};
+
+export default function CreateReservationModal({ onClose, onSubmit, guests, rooms }: CreateReservationModalProps) {
+  const today = localDate(new Date());
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
   const [formData, setFormData] = useState({
-    guestName: '',
-    email: '',
-    roomNumber: '',
-    checkIn: '',
-    checkOut: '',
-    nights: 1,
-    totalPrice: '',
+    guestId: '', roomId: '', checkInDate: today, checkOutDate: localDate(tomorrow),
+    numberOfGuests: '1', totalPrice: '', notes: '',
   });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const selectedRoom = rooms.find((room) => room._id === formData.roomId);
+  const nights = Math.max(1, Math.ceil((new Date(formData.checkOutDate).getTime() - new Date(formData.checkInDate).getTime()) / 86_400_000));
+  const total = formData.totalPrice === '' ? (selectedRoom?.pricePerNight ?? 0) * nights : Number(formData.totalPrice);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSubmit({
-      ...formData,
-      reservationId: `RES-${Date.now()}`,
-      status: 'pending',
-    });
-  };
-
-  const calculateNights = () => {
-    if (formData.checkIn && formData.checkOut) {
-      const checkIn = new Date(formData.checkIn);
-      const checkOut = new Date(formData.checkOut);
-      const nights = Math.ceil(
-        (checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24)
-      );
-      return nights > 0 ? nights : 1;
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (saving) return;
+    if (new Date(formData.checkOutDate) <= new Date(formData.checkInDate)) {
+      setError('Checkout must be after check-in.');
+      return;
     }
-    return 1;
-  };
-
-  const handleDateChange = (field: string, value: string) => {
-    setFormData({ ...formData, [field]: value });
-    if (field === 'checkIn' || field === 'checkOut') {
-      const nights = calculateNights();
-      setFormData((prev) => ({ ...prev, nights }));
+    setSaving(true);
+    setError('');
+    try {
+      await onSubmit({
+        guestId: formData.guestId,
+        roomId: formData.roomId,
+        checkInDate: new Date(`${formData.checkInDate}T14:00:00`).toISOString(),
+        checkOutDate: new Date(`${formData.checkOutDate}T11:00:00`).toISOString(),
+        numberOfGuests: Number(formData.numberOfGuests),
+        totalPrice: total,
+        notes: formData.notes,
+      });
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Unable to create reservation.');
+    } finally {
+      setSaving(false);
     }
   };
+
+  const inputClass = 'mt-1.5 w-full rounded-xl border border-border bg-secondary px-3.5 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50';
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-card rounded-lg max-w-lg w-full p-6 border border-border max-h-[90vh] overflow-y-auto">
-        <h2 className="text-xl font-bold text-foreground mb-6">
-          New Reservation
-        </h2>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onMouseDown={(event) => { if (event.target === event.currentTarget && !saving) onClose(); }}>
+      <section role="dialog" aria-modal="true" aria-labelledby="reservation-title" className="max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-2xl border border-border bg-card p-6 shadow-2xl">
+        <h2 id="reservation-title" className="text-xl font-bold text-foreground">New Reservation</h2>
+        <p className="mb-5 mt-1 text-sm text-muted-foreground">Choose a registered guest and a room for the stay.</p>
+        {guests.length === 0 && <p className="mb-4 rounded-lg bg-amber-500/10 p-3 text-sm text-amber-400">Register a guest before creating a reservation.</p>}
+        {rooms.length === 0 && <p className="mb-4 rounded-lg bg-amber-500/10 p-3 text-sm text-amber-400">No rooms are currently available to book.</p>}
+        <form onSubmit={submit} className="space-y-4">
+          <label className="block text-xs font-medium text-muted-foreground">Guest *
+            <select required value={formData.guestId} onChange={(event) => setFormData({ ...formData, guestId: event.target.value })} className={inputClass}>
+              <option value="">Select guest</option>
+              {guests.map((guest) => <option key={guest._id} value={guest._id}>{guest.firstName} {guest.lastName}{guest.email ? ` · ${guest.email}` : ''}</option>)}
+            </select>
+          </label>
+          <label className="block text-xs font-medium text-muted-foreground">Room *
+            <select required value={formData.roomId} onChange={(event) => setFormData({ ...formData, roomId: event.target.value, totalPrice: '' })} className={inputClass}>
+              <option value="">Select room</option>
+              {rooms.map((room) => <option key={room._id} value={room._id}>Room {room.roomNumber} · {room.type} · max {room.capacity} guests</option>)}
+            </select>
+          </label>
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
-                Guest Name
-              </label>
-              <input
-                type="text"
-                value={formData.guestName}
-                onChange={(e) =>
-                  setFormData({ ...formData, guestName: e.target.value })
-                }
-                className="w-full px-4 py-2 bg-secondary border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                placeholder="John Smith"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
-                Email
-              </label>
-              <input
-                type="email"
-                value={formData.email}
-                onChange={(e) =>
-                  setFormData({ ...formData, email: e.target.value })
-                }
-                className="w-full px-4 py-2 bg-secondary border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                placeholder="john@example.com"
-                required
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-2">
-              Room Number
+            <label className="text-xs font-medium text-muted-foreground">Check-in *
+              <input required type="date" min={today} value={formData.checkInDate} onChange={(event) => setFormData({ ...formData, checkInDate: event.target.value })} className={inputClass} />
             </label>
-            <input
-              type="text"
-              value={formData.roomNumber}
-              onChange={(e) =>
-                setFormData({ ...formData, roomNumber: e.target.value })
-              }
-              className="w-full px-4 py-2 bg-secondary border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-              placeholder="301"
-              required
-            />
+            <label className="text-xs font-medium text-muted-foreground">Checkout *
+              <input required type="date" min={formData.checkInDate} value={formData.checkOutDate} onChange={(event) => setFormData({ ...formData, checkOutDate: event.target.value })} className={inputClass} />
+            </label>
           </div>
-
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
-                Check-In
-              </label>
-              <input
-                type="date"
-                value={formData.checkIn}
-                onChange={(e) =>
-                  handleDateChange('checkIn', e.target.value)
-                }
-                className="w-full px-4 py-2 bg-secondary border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
-                Check-Out
-              </label>
-              <input
-                type="date"
-                value={formData.checkOut}
-                onChange={(e) =>
-                  handleDateChange('checkOut', e.target.value)
-                }
-                className="w-full px-4 py-2 bg-secondary border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                required
-              />
-            </div>
+            <label className="text-xs font-medium text-muted-foreground">Number of guests *
+              <input required type="number" min="1" max={selectedRoom?.capacity ?? 30} value={formData.numberOfGuests} onChange={(event) => setFormData({ ...formData, numberOfGuests: event.target.value })} className={inputClass} />
+            </label>
+            <label className="text-xs font-medium text-muted-foreground">Total price (₦)
+              <input type="number" min="0" step="0.01" value={formData.totalPrice === '' ? total : formData.totalPrice} onChange={(event) => setFormData({ ...formData, totalPrice: event.target.value })} className={inputClass} />
+            </label>
           </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
-                Nights
-              </label>
-              <input
-                type="number"
-                value={formData.nights}
-                readOnly
-                className="w-full px-4 py-2 bg-secondary/50 border border-border rounded-lg text-foreground opacity-75"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
-                Total Price
-              </label>
-              <input
-                type="number"
-                value={formData.totalPrice}
-                onChange={(e) =>
-                  setFormData({ ...formData, totalPrice: e.target.value })
-                }
-                className="w-full px-4 py-2 bg-secondary border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                placeholder="$"
-                required
-              />
-            </div>
-          </div>
-
-          <div className="flex gap-3 pt-4">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 px-4 py-2 rounded-lg border border-border text-foreground hover:bg-secondary transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="flex-1 px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:shadow-lg hover:shadow-primary/30 font-medium transition-all"
-            >
-              Create Reservation
-            </button>
+          <label className="block text-xs font-medium text-muted-foreground">Notes (optional)
+            <textarea maxLength={1000} rows={3} value={formData.notes} onChange={(event) => setFormData({ ...formData, notes: event.target.value })} className={inputClass} />
+          </label>
+          {error && <p role="alert" className="text-sm text-red-400">{error}</p>}
+          <div className="flex justify-end gap-3 border-t border-border pt-4">
+            <button type="button" onClick={onClose} disabled={saving} className="rounded-xl border border-border px-4 py-2.5 text-sm text-foreground hover:bg-secondary disabled:opacity-50">Cancel</button>
+            <button type="submit" disabled={saving || guests.length === 0 || rooms.length === 0} className="rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-50">{saving ? 'Saving…' : 'Create Reservation'}</button>
           </div>
         </form>
-      </div>
+      </section>
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import { formatNaira } from '@/lib/utils';
+import { ChevronDown } from 'lucide-react';
 
 interface Reservation {
   id: string;
@@ -42,7 +43,30 @@ export default function ReservationsList({
           key={reservation.id}
           className="card-premium border-l-4 border-primary"
         >
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-center">
+          <div className="md:hidden">
+            <div className="flex min-w-0 items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="break-words text-sm font-semibold text-foreground">{reservation.guestName}</p>
+                <p className="mt-1 text-xs text-muted-foreground">Room #{reservation.roomNumber}</p>
+              </div>
+              <span className={`shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-semibold ${getStatusColor(reservation.status)}`}>
+                {reservation.status.charAt(0).toUpperCase() + reservation.status.slice(1)}
+              </span>
+            </div>
+            <details className="group mt-3 border-t border-border/70 pt-2">
+              <summary className="flex min-h-9 cursor-pointer list-none items-center justify-between text-xs font-semibold text-primary [&::-webkit-details-marker]:hidden">
+                Details<ChevronDown size={14} className="transition-transform group-open:rotate-180" />
+              </summary>
+              <div className="grid grid-cols-2 gap-x-3 gap-y-3 pb-1 text-xs">
+                <div className="col-span-2 min-w-0"><p className="text-muted-foreground">Guest email</p><p className="break-all text-foreground">{reservation.email}</p></div>
+                <div><p className="text-muted-foreground">Stay length</p><p className="text-foreground">{reservation.nights} nights</p></div>
+                <div><p className="text-muted-foreground">Total price</p><p className="break-words font-semibold text-primary">{formatNaira(reservation.totalPrice)}</p></div>
+                <div><p className="text-muted-foreground">Check-in</p><p className="break-words text-foreground">{reservation.checkIn}</p></div>
+                <div><p className="text-muted-foreground">Check-out</p><p className="break-words text-foreground">{reservation.checkOut}</p></div>
+              </div>
+            </details>
+          </div>
+          <div className="hidden grid-cols-1 items-center gap-4 md:grid md:grid-cols-5">
             {/* Guest Info */}
             <div>
               <p className="text-xs text-muted-foreground mb-1">Guest</p>

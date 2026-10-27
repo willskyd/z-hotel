@@ -35,6 +35,7 @@ export default function CreateRoomModal({ onClose, onSubmit, roomTypes }: Create
   const [description, setDescription] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
 
   const validate = (): boolean => {
     const errs: Record<string, string> = {};
@@ -56,6 +57,7 @@ export default function CreateRoomModal({ onClose, onSubmit, roomTypes }: Create
     e.preventDefault();
     if (!canCreate || !validate()) return;
     setSubmitting(true);
+    setSubmitError('');
     try {
       await onSubmit({
         roomNumber: roomNumber.trim(),
@@ -67,6 +69,8 @@ export default function CreateRoomModal({ onClose, onSubmit, roomTypes }: Create
         status,
         description: description.trim(),
       });
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : 'Unable to create room');
     } finally {
       setSubmitting(false);
     }
@@ -107,6 +111,7 @@ export default function CreateRoomModal({ onClose, onSubmit, roomTypes }: Create
         </div>
 
         <form id="create-room-form" onSubmit={handleSubmit} className="overflow-y-auto flex-1 p-6 space-y-4" noValidate>
+          {submitError && <p role="alert" className="text-sm text-red-400">{submitError}</p>}
           {/* Room Number + Type */}
           <div className="grid grid-cols-2 gap-3">
             <div>

@@ -304,9 +304,9 @@ export default function GuestsPage() {
 }, []);
 
   return (
-    <div className="space-y-6 max-w-[1400px]">
+    <div className="w-full min-w-0 space-y-5 sm:space-y-6 max-w-[1400px]">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Guest Management</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
@@ -315,9 +315,9 @@ export default function GuestsPage() {
         </div>
         <button
           onClick={() => setShowAddModal(true)}
-          className="flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground text-sm font-semibold rounded-xl hover:shadow-lg hover:shadow-primary/30 transition-all duration-200"
+          className="flex min-h-10 shrink-0 items-center gap-1.5 rounded-xl bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground transition-all duration-200 hover:shadow-lg hover:shadow-primary/30 sm:gap-2 sm:px-4 sm:text-sm"
         >
-          <UserPlus size={16} />
+          <UserPlus size={14} className="sm:h-4 sm:w-4" />
           Register Guest
         </button>
       </div>
@@ -326,19 +326,52 @@ export default function GuestsPage() {
       <GuestStatsOverview stats={stats} />
 
       {/* Filters row */}
-      <div className="flex items-center gap-3 flex-wrap">
-        <div className="flex items-center gap-2 flex-1 min-w-60 bg-card border border-border rounded-xl px-3 py-2.5 focus-within:border-primary/50 transition-colors">
+      <div className="flex min-w-0 flex-col gap-2.5 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
+        <div className="flex min-w-0 w-full flex-1 items-center gap-2 rounded-xl border border-border bg-card px-3 py-2.5 transition-colors focus-within:border-primary/50 sm:w-auto sm:min-w-60">
           <Search size={14} className="text-muted-foreground shrink-0" />
           <input
             type="text"
             placeholder="Search by name, email, phone..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="bg-transparent border-0 outline-none w-full text-sm text-foreground placeholder:text-muted-foreground/60"
+            className="min-w-0 w-full bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground/60"
           />
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex min-w-0 w-full items-center gap-2 sm:hidden">
+          <label className="flex min-w-0 flex-1 items-center gap-2 rounded-xl border border-border bg-card px-3 py-2.5">
+            <SlidersHorizontal size={14} className="shrink-0 text-muted-foreground" />
+            <span className="shrink-0 text-xs font-medium text-muted-foreground">Sort</span>
+            <select
+              value={sortKey}
+              onChange={(event) => {
+                const nextKey = event.target.value as SortKey;
+                if (nextKey !== sortKey) {
+                  setSortKey(nextKey);
+                  setSortDir('desc');
+                }
+              }}
+              aria-label="Sort guests by"
+              className="min-w-0 flex-1 appearance-none bg-transparent text-right text-sm text-foreground outline-none"
+            >
+              <option value="revenue" className="bg-secondary text-foreground">Revenue</option>
+              <option value="stays" className="bg-secondary text-foreground">Stays</option>
+              <option value="name" className="bg-secondary text-foreground">Name</option>
+              <option value="lastVisit" className="bg-secondary text-foreground">Last Visit</option>
+            </select>
+          </label>
+          <button
+            type="button"
+            onClick={() => setSortDir((direction) => direction === 'desc' ? 'asc' : 'desc')}
+            aria-label={sortDir === 'desc' ? 'Sort descending; tap to sort ascending' : 'Sort ascending; tap to sort descending'}
+            title={sortDir === 'desc' ? 'Descending; tap to reverse order' : 'Ascending; tap to reverse order'}
+            className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-xl border border-border bg-card text-primary hover:bg-secondary"
+          >
+            {sortDir === 'desc' ? <TrendingDown size={16} /> : <TrendingUp size={16} />}
+          </button>
+        </div>
+
+        <div className="hidden items-center gap-2 sm:flex">
           <span className="text-xs text-muted-foreground">Sort:</span>
           {(['revenue', 'stays', 'name', 'lastVisit'] as SortKey[]).map((key) => (
             <button

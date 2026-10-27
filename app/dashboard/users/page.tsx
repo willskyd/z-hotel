@@ -154,7 +154,7 @@ export default function UsersPage() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6">
+    <div className="mx-auto min-w-0 w-full max-w-6xl space-y-5 sm:space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">User Management</h1>
@@ -172,8 +172,8 @@ export default function UsersPage() {
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(280px,0.8fr)_minmax(0,1.4fr)]">
-        <section className="h-fit rounded-xl border border-border bg-card p-5">
+      <div className="grid min-w-0 gap-4 sm:gap-6 lg:grid-cols-[minmax(280px,0.8fr)_minmax(0,1.4fr)]">
+        <section className="h-fit min-w-0 rounded-xl border border-border bg-card p-4 sm:p-5">
           <div className="mb-5 flex items-center gap-3">
             <div className="rounded-lg bg-primary/10 p-2">
               <UserPlus className="h-5 w-5 text-primary" />
@@ -283,7 +283,7 @@ export default function UsersPage() {
           </form>
         </section>
 
-        <section className="rounded-xl border border-border bg-card p-5">
+        <section className="min-w-0 rounded-xl border border-border bg-card p-4 sm:p-5">
           <div className="mb-5 flex items-center justify-between gap-3">
             <div>
               <h2 className="font-semibold">Hotel user accounts</h2>
@@ -317,7 +317,27 @@ export default function UsersPage() {
               No user accounts found.
             </p>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="space-y-3 md:hidden">
+              {users.map((account) => (
+                <article key={account.id} className="min-w-0 rounded-xl border border-border bg-background/50 p-3.5">
+                  <div className="flex min-w-0 items-start justify-between gap-2.5">
+                    <div className="min-w-0 flex-1">
+                      <p className="break-words text-sm font-semibold">{account.fullName}</p>
+                      <p className="mt-1 break-all text-xs leading-relaxed text-muted-foreground">{account.email}</p>
+                    </div>
+                    <span className="shrink-0 rounded-full bg-muted px-2 py-1 text-[10px] font-medium capitalize">{account.role}</span>
+                  </div>
+                  <div className="mt-3 flex items-center justify-between border-t border-border pt-2.5 text-xs">
+                    <span className="text-muted-foreground">Account status</span>
+                    <span className="capitalize text-emerald-600">{account.status || 'active'}</span>
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
+
+          {!loading && users.length > 0 && (
+            <div className="hidden overflow-x-auto md:block">
               <table className="w-full min-w-[420px] text-left text-sm">
                 <thead>
                   <tr className="border-b border-border text-xs text-muted-foreground">

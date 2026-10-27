@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, useContext, useState, useCallback } from 'react';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface SidebarContextType {
   expanded: boolean;
@@ -17,6 +18,7 @@ const SidebarContext = createContext<SidebarContextType>({
 });
 
 export function SidebarProvider({ children }: { children: React.ReactNode }) {
+  const isMobile = useIsMobile();
   const [pinned, setPinned] = useState(false);
   const [hovered, setHoveredState] = useState(false);
 
@@ -30,7 +32,7 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <SidebarContext.Provider
-      value={{ expanded: pinned || hovered, pinned, togglePin, setHovered }}
+      value={{ expanded: !isMobile && (pinned || hovered), pinned, togglePin, setHovered }}
     >
       {children}
     </SidebarContext.Provider>

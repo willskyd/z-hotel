@@ -46,13 +46,13 @@ Zinuel-ch Hotel PMS is a comprehensive hotel management solution featuring an as
 - Email and phone verification
 - Country/location information
 
-### 6. **Front Desk Operations**
-- Check-in management for current guests
-- Check-out processing
-- Available rooms display
-- Room key management
-- Guest request handling
-- Pending check-outs queue
+### 6. **Receptionist Operations**
+- Register and check in walk-in guests
+- Process reservation arrivals and checkouts
+- Track upcoming bookings and current in-house guests
+- Display expected checkout times and overdue stays
+- Keep room occupancy synchronized with stay status
+- Move checked-out rooms to Cleaning for housekeeping
 
 ### 7. **Billing & Payments**
 - Invoice generation and tracking

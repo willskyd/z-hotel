@@ -1,368 +1,500 @@
 'use client';
 
-import { useState } from 'react';
+import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  ConciergeBell, BedDouble, CalendarCheck2, CalendarX2,
-  Clock, CheckCircle2, Phone, Key, Bell, Users, ArrowRight,
-  User, MapPin,
+  BedDouble, CalendarCheck2, CalendarClock, CalendarX2, CheckCircle2, ChevronDown,
+  ConciergeBell, RefreshCw, Search, Users,
 } from 'lucide-react';
-import { formatNaira } from '@/lib/utils';
 import CheckoutCommentModal from '@/components/front-desk/checkout-comment-modal';
+import CheckoutHistory from '@/components/receptionist/checkout-history';
+import RetainRoomModal from '@/components/receptionist/retain-room-modal';
 
-interface CheckedInGuest {
-  id: string;
-  guestName: string;
+type Room = {
+  _id: string;
   roomNumber: string;
-  roomType: string;
-  checkInTime: string;
+  type: string;
+  capacity: number;
+  pricePerNight: number;
+  status: string;
+};
+type Guest = {
+  _id: string;
+  firstName: string;
+  lastName: string;
+  email?: string;
+  phone?: string;
+  country?: string;
+};
+type Reservation = {
+  _id: string;
+  guestId: string;
+  roomId: string;
+  guestName?: string;
+  checkInDate: string;
   checkOutDate: string;
-  nights: number;
-  country: string;
+  actualCheckInAt?: string;
+  actualCheckOutAt?: string;
+  numberOfGuests?: number;
+  totalPrice?: number;
+  status: string;
+  notes?: string;
+  extensions?: Array<{
+    extensionId?: string;
+    previousExpectedCheckout?: string;
+    newExpectedCheckout?: string;
+    extendedAt?: string;
+    reason?: string;
+    staff?: { email?: string };
+    additionalNights?: number;
+    estimatedAdditionalCharge?: number | null;
+  }>;
+};
+type ReceptionData = { rooms: Room[]; guests: Guest[]; reservations: Reservation[] };
+type WalkInForm = {
+  firstName: string;
+  lastName: string;
   phone: string;
-}
+  email: string;
+  roomId: string;
+  checkInDate: string;
+  checkOutDate: string;
+  numberOfGuests: string;
+  notes: string;
+};
 
-interface CheckOutGuest {
-  id: string;
-  guestName: string;
-  roomNumber: string;
-  checkOutTime: string;
-  nights: number;
-  totalBill: number;
-  status: 'pending' | 'overdue';
-}
-
-const AVAILABLE_ROOMS = [
-  { room: '101', type: 'Standard' },
-  { room: '104', type: 'Standard' },
-  { room: '201', type: 'Deluxe' },
-  { room: '203', type: 'Deluxe' },
-  { room: '304', type: 'Suite' },
-  { room: '308', type: 'Standard' },
-  { room: '402', type: 'Deluxe' },
-  { room: '405', type: 'Suite' },
-];
-
-const ROOM_TYPE_COLOR: Record<string, string> = {
-  Standard: 'bg-blue-500/10 border-blue-500/25 text-blue-400',
-  Deluxe: 'bg-purple-500/10 border-purple-500/25 text-purple-400',
-  Suite: 'bg-amber-500/10 border-amber-500/25 text-amber-400',
+const ACTIVE_STAYS = ['checked-in', 'checked_in', 'in-house', 'in_house'];
+const isActiveStay = (status: string) => ACTIVE_STAYS.includes(status);
+const displayDate = (value: string, includeTime = true) => {
+  const date = new Date(value);
+  return Number.isFinite(date.getTime())
+    ? date.toLocaleString('en-NG', includeTime ? { dateStyle: 'medium', timeStyle: 'short' } : { dateStyle: 'medium' })
+    : 'Not set';
+};
+const localDateTime = (date: Date) => {
+  const pad = (part: number) => String(part).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 };
 
 export default function FrontDeskPage() {
-  const [activeTab, setActiveTab] = useState<'checkins' | 'checkouts' | 'inhouse'>('checkins');
-  const [checkoutTarget, setCheckoutTarget] = useState<CheckOutGuest | null>(null);
-  const [processedIds, setProcessedIds] = useState<string[]>([]);
+  const [data, setData] = useState<ReceptionData>({ rooms: [], guests: [], reservations: [] });
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
+  const [search, setSearch] = useState('');
+  const [activeTab, setActiveTab] = useState<'arrivals' | 'upcoming' | 'departures' | 'in-house'>('arrivals');
+  const [showWalkIn, setShowWalkIn] = useState(false);
+  const [savingWalkIn, setSavingWalkIn] = useState(false);
+  const [walkInError, setWalkInError] = useState('');
+  const [checkoutTarget, setCheckoutTarget] = useState<Reservation | null>(null);
+  const [retainTarget, setRetainTarget] = useState<Reservation | null>(null);
+  const [historyRefreshKey, setHistoryRefreshKey] = useState(0);
+  const [processingId, setProcessingId] = useState('');
+  const [clock, setClock] = useState(Date.now());
+  const [walkIn, setWalkIn] = useState<WalkInForm>(() => {
+    const now = new Date();
+    const checkout = new Date(now);
+    checkout.setDate(checkout.getDate() + 1);
+    checkout.setHours(11, 0, 0, 0);
+    return {
+      firstName: '', lastName: '', phone: '', email: '', roomId: '',
+      checkInDate: localDateTime(now), checkOutDate: localDateTime(checkout),
+      numberOfGuests: '1', notes: '',
+    };
+  });
 
-  const [checkedInGuests, setCheckedInGuests] = useState<CheckedInGuest[]>([
-    {
-      id: '1',
-      guestName: 'Emeka Okafor',
-      roomNumber: '301',
-      roomType: 'Deluxe',
-      checkInTime: '14:30',
-      checkOutDate: '2024-06-18',
-      nights: 3,
-      country: 'Nigeria',
-      phone: '+234-803-555-0101',
-    },
-    {
-      id: '2',
-      guestName: 'Chidi Nwosu',
-      roomNumber: '410',
-      roomType: 'Suite',
-      checkInTime: '15:45',
-      checkOutDate: '2024-06-19',
-      nights: 2,
-      country: 'Nigeria',
-      phone: '+234-806-555-0103',
-    },
-    {
-      id: '3',
-      guestName: 'Fatima Aliyu',
-      roomNumber: '205',
-      roomType: 'Standard',
-      checkInTime: '11:00',
-      checkOutDate: '2024-06-20',
-      nights: 4,
-      country: 'Nigeria',
-      phone: '+234-809-555-0199',
-    },
-  ]);
+  const loadData = useCallback(async (quiet = false) => {
+    if (quiet) setRefreshing(true);
+    else setLoading(true);
+    setError('');
+    try {
+      const token = localStorage.getItem('accessToken');
+      const response = await fetch('/api/receptionist', {
+        headers: { Authorization: `Bearer ${token ?? ''}` },
+        cache: 'no-store',
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error ?? 'Unable to load receptionist data');
+      setData(result);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Unable to load receptionist data');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
 
-  const [checkOutGuests, setCheckOutGuests] = useState<CheckOutGuest[]>([
-    { id: '1', guestName: 'Ngozi Adeyemi', roomNumber: '205', checkOutTime: '11:00', nights: 4, totalBill: 520_000, status: 'pending' },
-    { id: '2', guestName: 'Aisha Bello', roomNumber: '102', checkOutTime: '11:30', nights: 3, totalBill: 360_000, status: 'overdue' },
-    { id: '3', guestName: 'Biodun Fashola', roomNumber: '203', checkOutTime: '12:00', nights: 2, totalBill: 240_000, status: 'pending' },
-  ]);
+  useEffect(() => {
+    void loadData();
+    const timer = window.setInterval(() => setClock(Date.now()), 60_000);
+    return () => window.clearInterval(timer);
+  }, [loadData]);
 
-  const pendingCheckouts = checkOutGuests.filter((g) => !processedIds.includes(g.id));
-  const todayArrivals = 8;
+  const guestMap = useMemo(() => new Map(data.guests.map((guest) => [guest._id, guest])), [data.guests]);
+  const roomMap = useMemo(() => new Map(data.rooms.map((room) => [room._id, room])), [data.rooms]);
+  const detailsFor = (reservation: Reservation) => {
+    const guest = guestMap.get(reservation.guestId);
+    const room = roomMap.get(reservation.roomId);
+    return {
+      guestName: reservation.guestName || (guest ? `${guest.firstName} ${guest.lastName}`.trim() : 'Guest'),
+      roomNumber: room?.roomNumber ?? '—',
+      roomType: room?.type ?? 'Room',
+      phone: guest?.phone ?? '',
+      email: guest?.email ?? '',
+      country: guest?.country ?? '',
+      checkout: new Date(reservation.checkOutDate),
+    };
+  };
 
-  const handleConfirmCheckout = (guestId: string, comment: string) => {
-    setProcessedIds((prev) => [...prev, guestId]);
-    setCheckoutTarget(null);
-    // In real app: POST to API with guestId + comment
+  const today = new Date(clock);
+  today.setHours(0, 0, 0, 0);
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const arrivals = data.reservations.filter((reservation) =>
+    ['pending', 'confirmed'].includes(reservation.status) &&
+    new Date(reservation.checkInDate) >= today &&
+    new Date(reservation.checkInDate) < tomorrow,
+  );
+  const upcoming = data.reservations.filter((reservation) =>
+    ['pending', 'confirmed'].includes(reservation.status) &&
+    new Date(reservation.checkInDate) >= tomorrow,
+  );
+  const inHouse = data.reservations.filter((reservation) => isActiveStay(reservation.status));
+  const departures = inHouse.filter((reservation) => new Date(reservation.checkOutDate) < tomorrow);
+  const availableRooms = data.rooms.filter((room) => room.status === 'available');
+  const shownReservations = (activeTab === 'arrivals' ? arrivals : activeTab === 'upcoming' ? upcoming : activeTab === 'departures' ? departures : inHouse)
+    .filter((reservation) => {
+      const item = detailsFor(reservation);
+      const query = search.trim().toLowerCase();
+      return !query || item.guestName.toLowerCase().includes(query) || item.roomNumber.toLowerCase().includes(query);
+    })
+    .sort((a, b) => new Date(a.checkInDate).getTime() - new Date(b.checkInDate).getTime());
+
+  const performAction = async (action: 'check-in' | 'check-out', reservation: Reservation, notes = '') => {
+    setProcessingId(reservation._id);
+    setError('');
+    setNotice('');
+    try {
+      const token = localStorage.getItem('accessToken');
+      const response = await fetch('/api/receptionist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token ?? ''}` },
+        body: JSON.stringify({ action, reservationId: reservation._id, notes }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error ?? `Unable to ${action} guest`);
+      setCheckoutTarget(null);
+      setNotice(action === 'check-in' ? 'Guest checked in and room marked occupied.' : 'Checkout completed. Room is now queued for cleaning.');
+      if (action === 'check-out') setHistoryRefreshKey((key) => key + 1);
+      await loadData(true);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : `Unable to ${action} guest`);
+    } finally {
+      setProcessingId('');
+    }
+  };
+
+  const extendStay = async (reservation: Reservation, newCheckOutDate: string, reason: string) => {
+    const token = localStorage.getItem('accessToken');
+    const response = await fetch('/api/receptionist', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token ?? ''}` },
+      body: JSON.stringify({ action: 'extend-stay', reservationId: reservation._id, newCheckOutDate, reason }),
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error ?? 'Unable to extend stay');
+    setRetainTarget(null);
+    setNotice('Stay extended successfully. The room remains occupied.');
+    await loadData(true);
+  };
+
+  const handleWalkIn = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (savingWalkIn) return;
+    if (!walkIn.roomId) {
+      setWalkInError('Select an available room.');
+      return;
+    }
+    if (new Date(walkIn.checkOutDate) <= new Date(walkIn.checkInDate)) {
+      setWalkInError('Checkout must be later than check-in.');
+      return;
+    }
+    setSavingWalkIn(true);
+    setWalkInError('');
+    try {
+      const token = localStorage.getItem('accessToken');
+      const response = await fetch('/api/receptionist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token ?? ''}` },
+        body: JSON.stringify({
+          action: 'walk-in',
+          ...walkIn,
+          numberOfGuests: Number(walkIn.numberOfGuests),
+        }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error ?? 'Unable to register walk-in');
+      setShowWalkIn(false);
+      setWalkInError('');
+      setNotice('Walk-in registered and checked in successfully.');
+      setWalkIn((current) => ({ ...current, firstName: '', lastName: '', phone: '', email: '', roomId: '', notes: '' }));
+      await loadData(true);
+    } catch (cause) {
+      setWalkInError(cause instanceof Error ? cause.message : 'Unable to register walk-in');
+    } finally {
+      setSavingWalkIn(false);
+    }
   };
 
   const tabs = [
-    { id: 'checkins' as const, label: "Today's Arrivals", Icon: CalendarCheck2, count: todayArrivals, color: 'text-emerald-400' },
-    { id: 'checkouts' as const, label: 'Pending Check-Outs', Icon: CalendarX2, count: pendingCheckouts.length, color: 'text-amber-400' },
-    { id: 'inhouse' as const, label: 'In-House', Icon: BedDouble, count: checkedInGuests.length, color: 'text-blue-400' },
+    { id: 'arrivals' as const, label: "Today's Arrivals", count: arrivals.length, Icon: CalendarCheck2 },
+    { id: 'upcoming' as const, label: 'Upcoming', count: upcoming.length, Icon: CalendarClock },
+    { id: 'departures' as const, label: "Today's Departures", count: departures.length, Icon: CalendarX2 },
+    { id: 'in-house' as const, label: 'In-House', count: inHouse.length, Icon: BedDouble },
   ];
 
   return (
-    <div className="space-y-6 max-w-[1400px]">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+    <main className="mx-auto max-w-[1400px] space-y-6">
+      <header className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Front Desk</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            {new Date().toLocaleDateString('en-NG', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+          <div className="flex items-center gap-2 text-primary">
+            <ConciergeBell size={20} />
+            <span className="text-xs font-semibold uppercase tracking-[0.18em]">Receptionist</span>
+          </div>
+          <h1 className="mt-1 text-2xl font-bold text-foreground">Receptionist</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {today.toLocaleDateString('en-NG', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
           </p>
         </div>
-        <button className="flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground text-sm font-semibold rounded-xl hover:shadow-lg hover:shadow-primary/30 transition-all">
-          <ConciergeBell size={16} />
-          New Walk-In
-        </button>
-      </div>
+        <div className="flex gap-2">
+          <button onClick={() => void loadData(true)} disabled={refreshing} className="flex items-center gap-2 rounded-xl border border-border px-4 py-2.5 text-sm text-foreground hover:bg-secondary disabled:opacity-50" aria-label="Refresh receptionist data">
+            <RefreshCw size={15} className={refreshing ? 'animate-spin' : ''} /> Refresh
+          </button>
+          <button onClick={() => { setWalkInError(''); setShowWalkIn(true); }} className="flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:shadow-lg hover:shadow-primary/25">
+            <ConciergeBell size={16} /> New Walk-In
+          </button>
+        </div>
+      </header>
 
-      {/* Operations Summary Bar */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      {error && <p role="alert" className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">{error}</p>}
+      {notice && <p role="status" className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-400">{notice}</p>}
+
+      <section className="grid grid-cols-2 gap-3 lg:grid-cols-4" aria-label="Reception summary">
         {[
-          { label: "Today's Arrivals", value: todayArrivals, Icon: CalendarCheck2, c: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/20' },
-          { label: 'Pending Check-Outs', value: pendingCheckouts.length, Icon: CalendarX2, c: 'text-amber-400', bg: 'bg-amber-500/10 border-amber-500/20' },
-          { label: 'Guests In-House', value: checkedInGuests.length, Icon: Users, c: 'text-blue-400', bg: 'bg-blue-500/10 border-blue-500/20' },
-          { label: 'Available Rooms', value: AVAILABLE_ROOMS.length, Icon: BedDouble, c: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/20' },
-        ].map(({ label, value, Icon, c, bg }) => (
-          <div key={label} className={`flex items-center gap-3 p-4 rounded-2xl border ${bg} bg-card hover:shadow-md transition-all`}>
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center border ${bg}`}>
-              <Icon size={18} className={c} />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-foreground">{value}</p>
-              <p className="text-xs text-muted-foreground">{label}</p>
-            </div>
+          { label: "Today's Arrivals", value: arrivals.length, Icon: CalendarCheck2, color: 'text-emerald-400' },
+          { label: "Today's Departures", value: departures.length, Icon: CalendarClock, color: 'text-amber-400' },
+          { label: 'Guests In-House', value: inHouse.length, Icon: Users, color: 'text-blue-400' },
+          { label: 'Available Rooms', value: availableRooms.length, Icon: BedDouble, color: 'text-primary' },
+        ].map(({ label, value, Icon, color }) => (
+          <div key={label} className="flex items-center gap-3 rounded-2xl border border-border bg-card p-4">
+            <div className="rounded-xl bg-secondary p-2.5"><Icon size={18} className={color} /></div>
+            <div><p className="text-2xl font-bold text-foreground">{loading ? '—' : value}</p><p className="text-xs text-muted-foreground">{label}</p></div>
           </div>
         ))}
-      </div>
+      </section>
 
-      {/* Main Panel */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        {/* Left — Tabs Panel */}
-        <div className="lg:col-span-2 bg-card border border-border rounded-2xl overflow-hidden">
-          {/* Tab Header */}
-          <div className="flex border-b border-border">
-            {tabs.map(({ id, label, Icon, count, color }) => (
-              <button
-                key={id}
-                onClick={() => setActiveTab(id)}
-                className={`flex-1 flex flex-col items-center gap-1 px-4 py-3.5 text-xs font-medium border-b-2 transition-all duration-200 ${
-                  activeTab === id
-                    ? 'border-primary text-primary bg-primary/5'
-                    : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-secondary/40'
-                }`}
-              >
-                <div className="flex items-center gap-1.5">
-                  <Icon size={14} className={activeTab === id ? 'text-primary' : color} />
-                  <span className={`font-bold ${activeTab === id ? 'text-primary' : ''}`}>{count}</span>
-                </div>
-                <span>{label}</span>
-              </button>
-            ))}
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
+        <section className="overflow-hidden rounded-2xl border border-border bg-card">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border p-4">
+            <div className="flex gap-1 overflow-x-auto">
+              {tabs.map(({ id, label, count, Icon }) => (
+                <button key={id} onClick={() => setActiveTab(id)} className={`flex items-center gap-2 whitespace-nowrap rounded-xl px-3 py-2 text-sm ${activeTab === id ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-secondary'}`}>
+                  <Icon size={15} /> {label} <span className="rounded-full bg-secondary px-2 py-0.5 text-xs">{count}</span>
+                </button>
+              ))}
+            </div>
+            <label className="flex min-w-48 items-center gap-2 rounded-xl border border-border bg-secondary/50 px-3 py-2">
+              <Search size={14} className="text-muted-foreground" />
+              <input value={search} onChange={(event) => setSearch(event.target.value)} className="w-full bg-transparent text-sm outline-none" placeholder="Guest or room" aria-label="Search guest or room" />
+            </label>
           </div>
-
-          {/* Tab Content */}
-          <div className="p-4 space-y-3 min-h-[320px]">
-            {/* ARRIVALS TAB */}
-            {activeTab === 'checkins' && (
-              <>
-                {[
-                  { id: 'a1', guestName: 'Tunde Bakare', room: '103', roomType: 'Standard', arrival: '14:00', nights: 2 },
-                  { id: 'a2', guestName: 'Chinwe Eze', room: '302', roomType: 'Deluxe', arrival: '15:00', nights: 3 },
-                  { id: 'a3', guestName: 'Musa Ibrahim', room: '401', roomType: 'Suite', arrival: '16:00', nights: 1 },
-                ].map((arr) => (
-                  <div
-                    key={arr.id}
-                    className="flex items-center justify-between p-4 bg-secondary/50 rounded-xl border border-border hover:border-primary/25 transition-all group"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-xl bg-emerald-500/15 border border-emerald-500/25 flex items-center justify-center text-xs font-bold text-emerald-400">
-                        {arr.guestName.split(' ').map((n) => n[0]).join('').slice(0, 2)}
-                      </div>
-                      <div>
-                        <p className="font-semibold text-foreground text-sm">{arr.guestName}</p>
-                        <p className="text-xs text-muted-foreground">
-                          Room {arr.room} · {arr.nights} night{arr.nights > 1 ? 's' : ''}
-                          <span className={`ml-2 text-[10px] font-semibold px-1.5 py-0.5 rounded-full border ${ROOM_TYPE_COLOR[arr.roomType]}`}>
-                            {arr.roomType}
-                          </span>
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="text-right mr-2">
-                        <p className="text-xs text-muted-foreground">Arrival</p>
-                        <p className="text-sm font-semibold text-foreground">{arr.arrival}</p>
-                      </div>
-                      <button className="px-3 py-1.5 text-xs bg-emerald-500/15 border border-emerald-500/25 text-emerald-400 hover:bg-emerald-500/25 rounded-lg font-medium transition-colors">
-                        Check In
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </>
-            )}
-
-            {/* CHECKOUTS TAB */}
-            {activeTab === 'checkouts' && (
-              <>
-                {pendingCheckouts.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
-                    <CheckCircle2 size={36} className="mb-3 text-emerald-500/40" />
-                    <p className="text-sm font-medium">All check-outs processed</p>
-                    <p className="text-xs mt-1">Great work!</p>
-                  </div>
-                ) : (
-                  pendingCheckouts.map((g) => (
-                    <div
-                      key={g.id}
-                      className={`flex items-center justify-between p-4 rounded-xl border transition-all ${
-                        g.status === 'overdue'
-                          ? 'bg-red-500/5 border-red-500/25 hover:border-red-500/40'
-                          : 'bg-secondary/50 border-amber-500/20 hover:border-amber-500/40'
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-xs font-bold border ${
-                          g.status === 'overdue'
-                            ? 'bg-red-500/15 border-red-500/25 text-red-400'
-                            : 'bg-amber-500/15 border-amber-500/25 text-amber-400'
-                        }`}>
-                          {g.guestName.split(' ').map((n) => n[0]).join('').slice(0, 2)}
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <p className="font-semibold text-foreground text-sm">{g.guestName}</p>
-                            {g.status === 'overdue' && (
-                              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-red-500/15 border border-red-500/25 text-red-400">
-                                OVERDUE
-                              </span>
-                            )}
+          <div className="divide-y divide-border/70">
+            {loading ? (
+              <p className="p-8 text-center text-sm text-muted-foreground">Loading receptionist data…</p>
+            ) : shownReservations.length === 0 ? (
+              <div className="p-10 text-center">
+                <CheckCircle2 size={28} className="mx-auto mb-2 text-emerald-500/70" />
+                <p className="text-sm font-medium text-foreground">Nothing to show here</p>
+                <p className="mt-1 text-xs text-muted-foreground">Reservations and active stays appear here as they are recorded.</p>
+              </div>
+            ) : shownReservations.map((reservation) => {
+              const details = detailsFor(reservation);
+              const overdue = isActiveStay(reservation.status) && new Date(reservation.checkOutDate).getTime() < clock;
+              return (
+                <article key={reservation._id} className="flex min-w-0 flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+                  <div className="min-w-0 flex-1">
+                    <p className="break-words font-semibold text-foreground">{details.guestName}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Room {details.roomNumber} · {details.roomType} · {reservation.numberOfGuests ?? 1} guest(s)
+                    </p>
+                    <details className="group mt-2">
+                      <summary className="inline-flex min-h-9 cursor-pointer list-none items-center gap-1.5 rounded-lg px-2.5 text-xs font-semibold text-primary hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 [&::-webkit-details-marker]:hidden">
+                        Details
+                        <ChevronDown size={14} className="transition-transform group-open:rotate-180" />
+                      </summary>
+                      <div className="mt-2 grid gap-2 rounded-xl border border-border bg-secondary/30 p-3 text-xs sm:grid-cols-2">
+                        <p><span className="text-muted-foreground">{activeTab === 'arrivals' || activeTab === 'upcoming' ? 'Arrival' : 'Check-in'}: </span><span className="text-foreground">{displayDate(reservation.checkInDate)}</span></p>
+                        {reservation.actualCheckInAt && <p><span className="text-muted-foreground">Actual check-in: </span><span className="text-foreground">{displayDate(reservation.actualCheckInAt)}</span></p>}
+                        {details.phone && <p className="break-words"><span className="text-muted-foreground">Phone: </span><span className="text-foreground">{details.phone}</span></p>}
+                        {details.email && <p className="break-all"><span className="text-muted-foreground">Email: </span><span className="text-foreground">{details.email}</span></p>}
+                        {details.country && <p><span className="text-muted-foreground">Country: </span><span className="text-foreground">{details.country}</span></p>}
+                        {reservation.totalPrice != null && <p><span className="text-muted-foreground">Stay total: </span><span className="text-foreground">₦{reservation.totalPrice.toLocaleString()}</span></p>}
+                        {reservation.notes && <p className="whitespace-pre-wrap break-words sm:col-span-2"><span className="text-muted-foreground">Notes: </span><span className="text-foreground">{reservation.notes}</span></p>}
+                        {activeTab === 'in-house' && (reservation.extensions?.length ?? 0) > 0 && (
+                          <div className="space-y-1.5 sm:col-span-2">
+                            <p className="font-medium text-foreground">Stay extension history</p>
+                            {reservation.extensions?.map((extension, index) => (
+                              <p key={extension.extensionId ?? `${extension.extendedAt}-${index}`} className="break-words text-muted-foreground">
+                                {displayDate(extension.previousExpectedCheckout ?? '')} → {displayDate(extension.newExpectedCheckout ?? '')}
+                                {' · '}{extension.additionalNights ?? '—'} night(s)
+                                {' · '}{extension.staff?.email ?? 'Staff not recorded'}
+                                {extension.reason ? ` · ${extension.reason}` : ''}
+                              </p>
+                            ))}
                           </div>
-                          <p className="text-xs text-muted-foreground">
-                            Room {g.roomNumber} · {g.nights} nights · By {g.checkOutTime}
-                          </p>
-                        </div>
+                        )}
                       </div>
-                      <div className="flex items-center gap-3">
-                        <div className="text-right">
-                          <p className="font-bold text-foreground text-sm">{formatNaira(g.totalBill)}</p>
-                          <p className="text-xs text-muted-foreground">Total bill</p>
-                        </div>
-                        <button
-                          onClick={() => setCheckoutTarget(g)}
-                          className="px-3 py-1.5 text-xs bg-primary/15 border border-primary/25 text-primary hover:bg-primary/25 rounded-lg font-medium transition-colors"
-                        >
-                          Process
+                    </details>
+                  </div>
+                  <div className="flex min-w-0 flex-wrap items-center justify-between gap-3 sm:justify-end">
+                    <div className="text-right">
+                      <p className="text-xs text-muted-foreground">Expected checkout</p>
+                      <p className={`text-sm font-medium ${overdue ? 'text-red-400' : 'text-foreground'}`}>{displayDate(reservation.checkOutDate)}</p>
+                      {overdue && <span className="text-[10px] font-bold uppercase text-red-400">Overdue · checkout required</span>}
+                    </div>
+                    {activeTab === 'arrivals' ? (
+                      <button onClick={() => void performAction('check-in', reservation)} disabled={!!processingId} className="rounded-lg border border-emerald-500/25 bg-emerald-500/10 px-3 py-2 text-xs font-semibold text-emerald-400 hover:bg-emerald-500/20 disabled:opacity-50">
+                        {processingId === reservation._id ? 'Checking in…' : 'Check In'}
+                      </button>
+                    ) : (activeTab === 'departures' || activeTab === 'in-house') ? (
+                      <div className="flex flex-wrap gap-2">
+                        {activeTab === 'in-house' && (
+                          <button onClick={() => setRetainTarget(reservation)} disabled={!!processingId} className="rounded-lg border border-blue-500/25 bg-blue-500/10 px-3 py-2 text-xs font-semibold text-blue-400 hover:bg-blue-500/20 disabled:opacity-50">
+                            Retain Room
+                          </button>
+                        )}
+                        <button onClick={() => setCheckoutTarget(reservation)} disabled={!!processingId} className="rounded-lg border border-primary/25 bg-primary/10 px-3 py-2 text-xs font-semibold text-primary hover:bg-primary/20 disabled:opacity-50">
+                          Check Out
                         </button>
                       </div>
-                    </div>
-                  ))
-                )}
-              </>
-            )}
-
-            {/* IN-HOUSE TAB */}
-            {activeTab === 'inhouse' && (
-              <>
-                {checkedInGuests.map((g) => (
-                  <div
-                    key={g.id}
-                    className="flex items-center justify-between p-4 bg-secondary/50 rounded-xl border border-border hover:border-blue-500/25 transition-all group"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-xl bg-blue-500/15 border border-blue-500/25 flex items-center justify-center text-xs font-bold text-blue-400">
-                        {g.guestName.split(' ').map((n) => n[0]).join('').slice(0, 2)}
-                      </div>
-                      <div>
-                        <p className="font-semibold text-foreground text-sm">{g.guestName}</p>
-                        <div className="flex items-center gap-3 mt-0.5">
-                          <p className="text-xs text-muted-foreground flex items-center gap-1">
-                            <BedDouble size={10} />
-                            Room {g.roomNumber}
-                            <span className={`ml-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full border ${ROOM_TYPE_COLOR[g.roomType]}`}>
-                              {g.roomType}
-                            </span>
-                          </p>
-                          <p className="text-xs text-muted-foreground flex items-center gap-1">
-                            <MapPin size={10} /> {g.country}
-                          </p>
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          Checked in {g.checkInTime} · Due out {g.checkOutDate}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button className="p-2 rounded-lg bg-primary/15 border border-primary/25 text-primary hover:bg-primary/25 transition-colors" title="Room Key">
-                        <Key size={13} />
-                      </button>
-                      <button className="p-2 rounded-lg bg-blue-500/15 border border-blue-500/25 text-blue-400 hover:bg-blue-500/25 transition-colors" title="Requests">
-                        <Bell size={13} />
-                      </button>
-                      <button className="p-2 rounded-lg bg-secondary border border-border text-muted-foreground hover:text-foreground hover:bg-secondary/80 transition-colors" title="Contact">
-                        <Phone size={13} />
-                      </button>
-                    </div>
+                    ) : <span className="text-xs font-medium text-muted-foreground">Expected</span>}
                   </div>
-                ))}
-              </>
-            )}
+                </article>
+              );
+            })}
           </div>
-        </div>
+        </section>
 
-        {/* Right Panel — Available Rooms */}
-        <div className="bg-card border border-border rounded-2xl overflow-hidden">
-          <div className="px-5 py-4 border-b border-border flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-foreground">Available Rooms</h3>
-            <span className="text-xs font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-full">
-              {AVAILABLE_ROOMS.length} ready
-            </span>
+        <section className="overflow-hidden rounded-2xl border border-border bg-card">
+          <div className="flex items-center justify-between border-b border-border px-5 py-4">
+            <div><h2 className="font-semibold text-foreground">Room Readiness</h2><p className="mt-0.5 text-xs text-muted-foreground">Live operational status</p></div>
+            <span className="text-xs text-muted-foreground">{data.rooms.length} rooms</span>
           </div>
-          <div className="p-4 grid grid-cols-2 gap-2.5">
-            {AVAILABLE_ROOMS.map(({ room, type }) => (
-              <button
-                key={room}
-                className={`flex flex-col items-center justify-center p-3 rounded-xl border hover:shadow-md transition-all duration-200 group ${ROOM_TYPE_COLOR[type]}`}
-              >
-                <BedDouble size={16} className="mb-1.5 group-hover:scale-110 transition-transform" />
-                <p className="text-sm font-bold">{room}</p>
-                <p className="text-[10px] opacity-70">{type}</p>
-              </button>
-            ))}
+          <div className="max-h-[490px] space-y-2 overflow-y-auto p-4">
+            {loading ? <p className="p-4 text-center text-xs text-muted-foreground">Loading rooms…</p> : data.rooms.length === 0 ? (
+              <p className="p-4 text-center text-xs text-muted-foreground">No rooms configured yet.</p>
+            ) : data.rooms.map((room) => {
+              const styles: Record<string, string> = {
+                available: 'border-emerald-500/20 bg-emerald-500/5 text-emerald-400',
+                occupied: 'border-blue-500/20 bg-blue-500/5 text-blue-400',
+                reserved: 'border-primary/20 bg-primary/5 text-primary',
+                cleaning: 'border-purple-500/20 bg-purple-500/5 text-purple-400',
+                maintenance: 'border-amber-500/20 bg-amber-500/5 text-amber-400',
+              };
+              return (
+                <div key={room._id} className="flex items-center justify-between rounded-xl border border-border px-3 py-2.5">
+                  <div className="flex items-center gap-2.5"><BedDouble size={15} className="text-muted-foreground" /><div><p className="text-sm font-semibold text-foreground">Room {room.roomNumber}</p><p className="text-[11px] text-muted-foreground">{room.type} · max {room.capacity} guests</p></div></div>
+                  <span className={`rounded-full border px-2 py-1 text-[10px] font-semibold capitalize ${styles[room.status] ?? 'border-border bg-secondary text-muted-foreground'}`}>{room.status || 'unknown'}</span>
+                </div>
+              );
+            })}
           </div>
-
-          {/* Legend */}
-          <div className="px-5 pb-4 space-y-1.5">
-            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Room Types</p>
-            {Object.entries(ROOM_TYPE_COLOR).map(([type, cls]) => (
-              <div key={type} className="flex items-center gap-2">
-                <div className={`w-2 h-2 rounded-full border ${cls}`} />
-                <p className={`text-xs font-medium ${cls.split(' ').find((c) => c.startsWith('text-'))}`}>{type}</p>
-              </div>
-            ))}
-          </div>
-        </div>
+        </section>
       </div>
 
-      {/* Checkout Comment Modal */}
+      <CheckoutHistory rooms={data.rooms} refreshKey={historyRefreshKey} />
+
+      {showWalkIn && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !savingWalkIn) setShowWalkIn(false); }}>
+          <section role="dialog" aria-modal="true" aria-labelledby="walkin-title" className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-border bg-card shadow-2xl">
+            <div className="sticky top-0 flex items-center justify-between border-b border-border bg-card px-6 py-4">
+              <div><h2 id="walkin-title" className="text-lg font-bold text-foreground">Register a Walk-In</h2><p className="mt-1 text-xs text-muted-foreground">Register the guest and check them into an available room.</p></div>
+              <button type="button" onClick={() => setShowWalkIn(false)} disabled={savingWalkIn} aria-label="Close walk-in form" className="rounded-lg px-3 py-2 text-muted-foreground hover:bg-secondary">✕</button>
+            </div>
+            <form onSubmit={handleWalkIn} className="space-y-4 p-6">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="text-xs font-medium text-muted-foreground">First name *
+                  <input required maxLength={80} autoComplete="given-name" value={walkIn.firstName} onChange={(event) => setWalkIn({ ...walkIn, firstName: event.target.value })} className="mt-1.5 w-full rounded-xl border border-border bg-secondary px-3 py-2.5 text-sm text-foreground" />
+                </label>
+                <label className="text-xs font-medium text-muted-foreground">Last name *
+                  <input required maxLength={80} autoComplete="family-name" value={walkIn.lastName} onChange={(event) => setWalkIn({ ...walkIn, lastName: event.target.value })} className="mt-1.5 w-full rounded-xl border border-border bg-secondary px-3 py-2.5 text-sm text-foreground" />
+                </label>
+                <label className="text-xs font-medium text-muted-foreground">Phone number *
+                  <input required type="tel" maxLength={32} autoComplete="tel" value={walkIn.phone} onChange={(event) => setWalkIn({ ...walkIn, phone: event.target.value })} className="mt-1.5 w-full rounded-xl border border-border bg-secondary px-3 py-2.5 text-sm text-foreground" />
+                </label>
+                <label className="text-xs font-medium text-muted-foreground">Email (optional)
+                  <input type="email" maxLength={254} autoComplete="email" value={walkIn.email} onChange={(event) => setWalkIn({ ...walkIn, email: event.target.value })} className="mt-1.5 w-full rounded-xl border border-border bg-secondary px-3 py-2.5 text-sm text-foreground" />
+                </label>
+                <label className="text-xs font-medium text-muted-foreground">Room *
+                  <select required value={walkIn.roomId} onChange={(event) => setWalkIn({ ...walkIn, roomId: event.target.value })} className="mt-1.5 w-full rounded-xl border border-border bg-secondary px-3 py-2.5 text-sm text-foreground">
+                    <option value="">Select available room</option>
+                    {availableRooms.map((room) => <option key={room._id} value={room._id}>Room {room.roomNumber} · {room.type} · {room.capacity} guests</option>)}
+                  </select>
+                  {availableRooms.length === 0 && <span className="mt-1 block text-[11px] text-amber-400">There are no available rooms to assign.</span>}
+                </label>
+                <label className="text-xs font-medium text-muted-foreground">Number of guests *
+                  <input required type="number" min="1" max={walkIn.roomId ? roomMap.get(walkIn.roomId)?.capacity ?? 1 : 30} value={walkIn.numberOfGuests} onChange={(event) => setWalkIn({ ...walkIn, numberOfGuests: event.target.value })} className="mt-1.5 w-full rounded-xl border border-border bg-secondary px-3 py-2.5 text-sm text-foreground" />
+                </label>
+                <label className="text-xs font-medium text-muted-foreground">Check-in *
+                  <input required type="datetime-local" value={walkIn.checkInDate} onChange={(event) => setWalkIn({ ...walkIn, checkInDate: event.target.value })} className="mt-1.5 w-full rounded-xl border border-border bg-secondary px-3 py-2.5 text-sm text-foreground" />
+                </label>
+                <label className="text-xs font-medium text-muted-foreground">Expected checkout *
+                  <input required type="datetime-local" min={walkIn.checkInDate} value={walkIn.checkOutDate} onChange={(event) => setWalkIn({ ...walkIn, checkOutDate: event.target.value })} className="mt-1.5 w-full rounded-xl border border-border bg-secondary px-3 py-2.5 text-sm text-foreground" />
+                </label>
+              </div>
+              <label className="block text-xs font-medium text-muted-foreground">Special requests or staff notes
+                <textarea maxLength={1000} rows={3} value={walkIn.notes} onChange={(event) => setWalkIn({ ...walkIn, notes: event.target.value })} className="mt-1.5 w-full resize-y rounded-xl border border-border bg-secondary px-3 py-2.5 text-sm text-foreground" />
+              </label>
+              {walkInError && <p role="alert" className="rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-400">{walkInError}</p>}
+              <div className="flex justify-end gap-3 border-t border-border pt-4">
+                <button type="button" onClick={() => setShowWalkIn(false)} disabled={savingWalkIn} className="rounded-xl border border-border px-4 py-2.5 text-sm text-foreground hover:bg-secondary disabled:opacity-50">Cancel</button>
+                <button type="submit" disabled={savingWalkIn || availableRooms.length === 0} className="rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-50">{savingWalkIn ? 'Registering…' : 'Register & Check In'}</button>
+              </div>
+            </form>
+          </section>
+        </div>
+      )}
+
       {checkoutTarget && (
         <CheckoutCommentModal
-          guest={checkoutTarget}
-          onConfirm={handleConfirmCheckout}
+          guest={{
+            id: checkoutTarget._id,
+            guestName: detailsFor(checkoutTarget).guestName,
+            roomNumber: detailsFor(checkoutTarget).roomNumber,
+            nights: Math.max(1, Math.ceil((new Date(checkoutTarget.checkOutDate).getTime() - new Date(checkoutTarget.checkInDate).getTime()) / 86_400_000)),
+            totalBill: Number(checkoutTarget.totalPrice ?? 0),
+            checkOutTime: displayDate(checkoutTarget.checkOutDate),
+          }}
+          onConfirm={(id, notes) => {
+            const reservation = data.reservations.find((item) => item._id === id);
+            if (reservation) void performAction('check-out', reservation, notes);
+          }}
           onCancel={() => setCheckoutTarget(null)}
+          isSubmitting={processingId === checkoutTarget._id}
+          error={processingId === checkoutTarget._id ? '' : error}
         />
       )}
-    </div>
+      {retainTarget && (
+        <RetainRoomModal
+          reservation={retainTarget}
+          details={{
+            ...detailsFor(retainTarget),
+            nightlyRate: Number(roomMap.get(retainTarget.roomId)?.pricePerNight ?? 0),
+          }}
+          onClose={() => setRetainTarget(null)}
+          onSubmit={(newCheckOutDate, reason) => extendStay(retainTarget, newCheckOutDate, reason)}
+        />
+      )}
+    </main>
   );
 }

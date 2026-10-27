@@ -53,12 +53,12 @@
 - ✅ Country/location information
 - ✅ Professional guest list table
 
-#### Front Desk Operations
-- ✅ Check-in management for current guests
-- ✅ Pending check-outs queue
-- ✅ Available rooms display
-- ✅ Room key management interface
-- ✅ Guest request handling interface
+#### Receptionist Operations
+- ✅ Walk-in guest registration with room and date validation
+- ✅ Reservation arrivals, upcoming stays, and in-house guest views
+- ✅ Server-validated check-in and checkout with audit records
+- ✅ Expected checkout and overdue stay tracking
+- ✅ Room occupancy synchronization and Cleaning status after checkout
 
 #### Billing & Payments
 - ✅ Invoice tracking and management
@@ -224,7 +224,7 @@ pnpm dev
 - Rooms: Manage hotel room inventory
 - Reservations: Track and create bookings
 - Guests: Manage guest profiles
-- Front Desk: Handle check-in/check-out
+- Receptionist: Register walk-ins and manage arrivals, in-house stays, and departures
 - Billing: Track payments and invoices
 
 ## Deployment Ready

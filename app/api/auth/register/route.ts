@@ -6,11 +6,27 @@ import { ObjectId } from 'mongodb';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { email, password, fullName, role } = body;
+    const emailInput = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
+    const password = typeof body.password === 'string' ? body.password : '';
+    const fullName = typeof body.fullName === 'string' ? body.fullName.trim() : '';
 
-    if (!email || !password || !fullName) {
+    if (!emailInput || !password || !fullName) {
       return NextResponse.json(
         { error: 'Missing required fields' },
+        { status: 400 }
+      );
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailInput)) {
+      return NextResponse.json(
+        { error: 'Enter a valid email address' },
+        { status: 400 }
+      );
+    }
+
+    if (password.length < 8) {
+      return NextResponse.json(
+        { error: 'Password must contain at least 8 characters' },
         { status: 400 }
       );
     }
@@ -18,8 +34,7 @@ export async function POST(request: NextRequest) {
     const db = await getDatabase();
     const usersCollection = db.collection('users');
 
-    // Check if user already exists
-    const existingUser = await usersCollection.findOne({ email });
+    const existingUser = await usersCollection.findOne({ email: emailInput });
     if (existingUser) {
       return NextResponse.json(
         { error: 'User already exists' },
@@ -27,16 +42,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Hash password
     const hashedPassword = await hashPassword(password);
 
-    // Create new user
     const newUser = {
       _id: new ObjectId(),
-      email,
+      email: emailInput,
       password: hashedPassword,
       fullName,
-      role: role || 'staff',
+      role: 'staff',
       status: 'active',
       createdAt: new Date(),
       updatedAt: new Date(),

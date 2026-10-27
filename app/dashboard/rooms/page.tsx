@@ -1,29 +1,20 @@
 'use client';
 
-import { useState } from 'react';
-import { BedDouble, Plus, Search, Filter } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
+import { BedDouble, Plus, Search, Filter, ChevronDown } from 'lucide-react';
 import RoomsList from '@/components/rooms/rooms-list';
 import CreateRoomModal from '@/components/rooms/create-room-modal';
 import RoomDetailModal, { Room } from '@/components/rooms/room-detail-modal';
 import { useAuth } from '@/lib/auth-context';
 import { formatNairaCompact } from '@/lib/utils';
 
-const MOCK_ROOMS: Room[] = [
-  { id: '1', roomNumber: '101', type: 'Standard', floor: 1, capacity: 2, pricePerNight: 45000, status: 'available', amenities: ['WiFi', 'TV', 'AC', 'En-suite bathroom'], description: 'Cosy standard room on the ground floor.', totalRevenue: 450000, totalBookings: 10 },
-  { id: '2', roomNumber: '102', type: 'Deluxe',   floor: 1, capacity: 3, pricePerNight: 85000, status: 'occupied', amenities: ['WiFi', 'TV', 'AC', 'En-suite bathroom', 'Mini bar'], currentGuest: 'Aisha Bello', checkOutDate: '2024-06-18', totalRevenue: 680000, totalBookings: 8 },
-  { id: '3', roomNumber: '203', type: 'Deluxe',   floor: 2, capacity: 3, pricePerNight: 85000, status: 'reserved', amenities: ['WiFi', 'TV', 'AC', 'En-suite bathroom', 'Mini bar', 'Room service'], totalRevenue: 510000, totalBookings: 6 },
-  { id: '4', roomNumber: '301', type: 'Suite',    floor: 3, capacity: 4, pricePerNight: 150000, status: 'occupied', amenities: ['WiFi', 'TV', 'AC', 'En-suite bathroom', 'Mini bar', 'Room service', 'Jacuzzi', 'Lounge area'], currentGuest: 'Emeka Okafor', checkOutDate: '2024-06-18', totalRevenue: 1500000, totalBookings: 10 },
-  { id: '5', roomNumber: '302', type: 'Standard', floor: 3, capacity: 2, pricePerNight: 45000, status: 'maintenance', amenities: ['WiFi', 'TV', 'AC'], description: 'Under scheduled maintenance.', totalRevenue: 270000, totalBookings: 6 },
-  { id: '6', roomNumber: '410', type: 'Suite',    floor: 4, capacity: 4, pricePerNight: 150000, status: 'occupied', amenities: ['WiFi', 'TV', 'AC', 'En-suite bathroom', 'Mini bar', 'Room service', 'Jacuzzi'], currentGuest: 'Chidi Nwosu', checkOutDate: '2024-06-19', totalRevenue: 1200000, totalBookings: 8 },
-  { id: '7', roomNumber: '501', type: 'Executive',floor: 5, capacity: 2, pricePerNight: 120000, status: 'available', amenities: ['WiFi', 'TV', 'AC', 'En-suite bathroom', 'Work desk', 'Coffee machine', 'Express laundry'], totalRevenue: 720000, totalBookings: 6 },
-  { id: '8', roomNumber: '502', type: 'Executive',floor: 5, capacity: 2, pricePerNight: 120000, status: 'cleaning', amenities: ['WiFi', 'TV', 'AC', 'En-suite bathroom', 'Work desk', 'Coffee machine'], totalRevenue: 480000, totalBookings: 4 },
-];
-
 const STATUS_FILTERS = ['all', 'available', 'occupied', 'maintenance', 'cleaning', 'reserved'] as const;
 
 export default function RoomsPage() {
   const { user } = useAuth();
-  const [rooms, setRooms] = useState<Room[]>(MOCK_ROOMS);
+  const [rooms, setRooms] = useState<Room[]>([]);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
   const [search, setSearch] = useState('');
@@ -31,27 +22,37 @@ export default function RoomsPage() {
 
   const canCreate = user?.role === 'admin' || user?.role === 'manager';
 
+  const loadRooms = useCallback(async () => {
+    const token = localStorage.getItem('accessToken');
+    const response = await fetch('/api/rooms', { headers: { Authorization: `Bearer ${token}` } });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error ?? 'Unable to load rooms');
+    setRooms(data.map((room: any) => ({ ...room, id: room._id })));
+  }, []);
+
+  useEffect(() => {
+    loadRooms().catch((cause) => setError(cause.message)).finally(() => setLoading(false));
+  }, [loadRooms]);
+
   const handleAddRoom = async (data: any) => {
-    const newRoom: Room = {
-      ...data,
-      id: String(Date.now()),
-      status: data.status ?? 'available',
-      totalRevenue: 0,
-      totalBookings: 0,
-    };
-    setRooms((prev) => [newRoom, ...prev]);
+    const response = await fetch('/api/rooms', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('accessToken')}` }, body: JSON.stringify(data) });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error ?? 'Unable to create room');
+    setRooms((prev) => [...prev, { ...result, id: result._id }]);
     setShowModal(false);
   };
 
-  const handleStatusChange = (roomId: string, newStatus: string) => {
-    setRooms((prev) => prev.map((r) => r.id === roomId ? { ...r, status: newStatus as any } : r));
-    if (selectedRoom?.id === roomId) setSelectedRoom((r) => r ? { ...r, status: newStatus as any } : r);
+  const updateRoom = async (roomId: string, updates: Record<string, unknown>) => {
+    const response = await fetch('/api/rooms', { method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('accessToken')}` }, body: JSON.stringify({ id: roomId, ...updates }) });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error ?? 'Unable to update room');
+    const saved = { ...result, id: result._id };
+    setRooms((prev) => prev.map((room) => room.id === roomId ? saved : room));
+    setSelectedRoom(saved);
   };
 
-  const handlePriceChange = (roomId: string, newPrice: number) => {
-    setRooms((prev) => prev.map((r) => r.id === roomId ? { ...r, pricePerNight: newPrice } : r));
-    if (selectedRoom?.id === roomId) setSelectedRoom((r) => r ? { ...r, pricePerNight: newPrice } : r);
-  };
+  const handleStatusChange = (roomId: string, newStatus: string) => updateRoom(roomId, { status: newStatus }).catch((cause) => setError(cause.message));
+  const handlePriceChange = (roomId: string, newPrice: number) => updateRoom(roomId, { pricePerNight: newPrice }).catch((cause) => setError(cause.message));
 
   const filtered = rooms.filter((r) => {
     const q = search.toLowerCase();
@@ -69,26 +70,29 @@ export default function RoomsPage() {
   };
 
   return (
-    <div className="space-y-6 max-w-[1400px]">
+    <div className="w-full min-w-0 space-y-5 sm:space-y-6 max-w-[1400px]">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Rooms</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">{rooms.length} rooms configured · {summary.available} available</p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="text-xl font-bold text-foreground sm:text-2xl">Rooms</h1>
+          <p className="mt-0.5 text-xs text-muted-foreground sm:text-sm">{rooms.length} rooms configured · {summary.available} available</p>
         </div>
         {canCreate && (
           <button
             onClick={() => setShowModal(true)}
-            className="flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground text-sm font-semibold rounded-xl hover:shadow-lg hover:shadow-primary/30 transition-all"
+            className="flex shrink-0 items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground transition-all hover:shadow-lg hover:shadow-primary/30 sm:gap-2 sm:rounded-xl sm:px-5 sm:py-2.5 sm:text-sm"
           >
-            <Plus size={16} />
+            <Plus size={14} className="sm:h-4 sm:w-4" />
             Add Room
           </button>
         )}
       </div>
 
+      {error && <p role="alert" className="text-sm text-red-400">{error}</p>}
+      {loading && <p className="text-sm text-muted-foreground">Loading rooms…</p>}
+
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 gap-2.5 sm:gap-4 lg:grid-cols-5">
         {[
           { label: 'Total Rooms',  value: summary.total,       color: 'text-foreground',   bg: 'bg-card' },
           { label: 'Available',    value: summary.available,   color: 'text-emerald-400',  bg: 'bg-emerald-500/5 border-emerald-500/15' },
@@ -96,31 +100,39 @@ export default function RoomsPage() {
           { label: 'Unavailable',  value: summary.maintenance, color: 'text-amber-400',    bg: 'bg-amber-500/5 border-amber-500/15' },
           { label: 'Total Revenue',value: formatNairaCompact(summary.totalRevenue), color: 'text-primary', bg: 'bg-primary/5 border-primary/15' },
         ].map(({ label, value, color, bg }) => (
-          <div key={label} className={"border rounded-2xl px-4 py-3.5 " + bg}>
-            <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">{label}</p>
-            <p className={"text-xl font-bold " + color}>{value}</p>
+          <div key={label} className={"min-w-0 rounded-2xl border px-3 py-3 sm:px-4 sm:py-3.5 " + bg}>
+            <p className="mb-1 truncate text-[10px] uppercase tracking-wide text-muted-foreground sm:text-xs sm:tracking-wider">{label}</p>
+            <p className={"truncate text-lg font-bold sm:text-xl " + color}>{value}</p>
           </div>
         ))}
       </div>
 
       {/* Filters */}
-      <div className="flex items-center gap-3 flex-wrap">
-        <div className="flex items-center gap-2 flex-1 min-w-52 bg-card border border-border rounded-xl px-3 py-2.5 focus-within:border-primary/50 transition-colors">
+      <div className="flex min-w-0 flex-col gap-2.5 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
+        <div className="flex min-w-0 w-full flex-1 items-center gap-2 rounded-xl border border-border bg-card px-3 py-2.5 transition-colors focus-within:border-primary/50 sm:w-auto">
           <Search size={14} className="text-muted-foreground shrink-0" />
           <input
             type="text"
-            placeholder="Search room number, type, or guest..."
+            placeholder="Search rooms by number, type, or guest"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="bg-transparent border-0 outline-none w-full text-sm text-foreground placeholder:text-muted-foreground/60"
+            className="min-w-0 w-full bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground/60"
           />
         </div>
-        <div className="flex items-center gap-2">
+        <label className="relative flex min-w-0 w-full items-center gap-2 rounded-xl border border-border bg-card px-3 py-2.5 transition-colors focus-within:border-primary/50 sm:hidden">
+          <Filter size={14} className="shrink-0 text-muted-foreground" />
+          <span className="shrink-0 text-xs font-medium text-muted-foreground">Status</span>
+          <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} aria-label="Filter rooms by status" className="min-w-0 flex-1 appearance-none bg-transparent py-0.5 pr-6 text-right text-sm capitalize text-foreground outline-none">
+            {STATUS_FILTERS.map((status) => <option key={status} value={status} className="bg-secondary text-foreground capitalize">{status === 'all' ? 'All statuses' : status}</option>)}
+          </select>
+          <ChevronDown size={14} className="pointer-events-none absolute right-3 shrink-0 text-muted-foreground" />
+        </label>
+        <div className="hidden flex-wrap items-center gap-2 sm:flex">
           {STATUS_FILTERS.map((s) => (
             <button
               key={s}
               onClick={() => setStatusFilter(s)}
-              className={"px-3 py-1.5 text-xs font-medium rounded-xl border transition-all capitalize " + (
+              className={"rounded-xl border px-2.5 py-1.5 text-[11px] font-medium capitalize transition-all md:px-3 md:text-xs " + (
                 statusFilter === s
                   ? 'bg-primary text-primary-foreground border-primary/50'
                   : 'border-border text-muted-foreground hover:border-primary/30 hover:text-foreground'

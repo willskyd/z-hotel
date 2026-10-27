@@ -11,7 +11,7 @@ const PAGE_NAMES: Record<string, string> = {
   '/dashboard/rooms': 'Rooms',
   '/dashboard/reservations': 'Reservations',
   '/dashboard/guests': 'Guests',
-  '/dashboard/front-desk': 'Front Desk',
+  '/dashboard/front-desk': 'Receptionist',
   '/dashboard/billing': 'Billing',
   '/dashboard/audit-log': 'Audit Log',
 };

@@ -31,8 +31,11 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { roomNumber, type, floor, capacity, pricePerNight, amenities, status, description } = body;
 
-    if (!roomNumber || !type || floor == null || capacity == null || !pricePerNight) {
+    if (!roomNumber || typeof roomNumber !== 'string' || !type || typeof type !== 'string' || floor == null || capacity == null || pricePerNight == null) {
       return NextResponse.json({ error: 'Missing required fields: roomNumber, type, floor, capacity, pricePerNight' }, { status: 400 });
+    }
+    if (![Number(floor), Number(capacity), Number(pricePerNight)].every(Number.isFinite) || Number(floor) < 0 || Number(capacity) < 1 || Number(pricePerNight) <= 0 || !['available', 'maintenance', 'cleaning', 'reserved'].includes(status ?? 'available')) {
+      return NextResponse.json({ error: 'Invalid room values' }, { status: 400 });
     }
 
     const db = await getDatabase();
@@ -94,21 +97,56 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { id, ...updates } = body;
-    if (!id) return NextResponse.json({ error: 'Room id is required' }, { status: 400 });
+    const { id } = body;
+    if (typeof id !== 'string' || !ObjectId.isValid(id)) return NextResponse.json({ error: 'Valid room id is required' }, { status: 400 });
+
+    const allowedFields = ['roomNumber', 'type', 'floor', 'capacity', 'pricePerNight', 'amenities', 'status', 'description'];
+    const updates = Object.fromEntries(Object.entries(body).filter(([key]) => allowedFields.includes(key)));
+    if (!Object.keys(updates).length) return NextResponse.json({ error: 'No valid room fields provided' }, { status: 400 });
+    for (const field of ['floor', 'capacity', 'pricePerNight'] as const) {
+      if (updates[field] != null) updates[field] = Number(updates[field]);
+    }
+    if (updates.floor != null && (!Number.isFinite(Number(updates.floor)) || Number(updates.floor) < 0) || updates.capacity != null && (!Number.isFinite(Number(updates.capacity)) || Number(updates.capacity) < 1) || updates.pricePerNight != null && (!Number.isFinite(Number(updates.pricePerNight)) || Number(updates.pricePerNight) <= 0)) {
+      return NextResponse.json({ error: 'Invalid numeric room values' }, { status: 400 });
+    }
+    if (updates.status != null && !['available', 'occupied', 'maintenance', 'cleaning', 'reserved'].includes(String(updates.status))) return NextResponse.json({ error: 'Invalid room status' }, { status: 400 });
+    if (updates.amenities != null && (!Array.isArray(updates.amenities) || !updates.amenities.every((value) => typeof value === 'string'))) return NextResponse.json({ error: 'Amenities must be a list of strings' }, { status: 400 });
 
     if (updates.pricePerNight != null) updates.pricePerNight = Number(updates.pricePerNight);
     if (updates.floor != null) updates.floor = Number(updates.floor);
     if (updates.capacity != null) updates.capacity = Number(updates.capacity);
 
     const db = await getDatabase();
+    let expectedRoomStatus: unknown;
+    if (updates.status != null) {
+      const currentRoom = await db.collection('rooms').findOne({ _id: new ObjectId(id) });
+      if (!currentRoom) return NextResponse.json({ error: 'Room not found' }, { status: 404 });
+      expectedRoomStatus = currentRoom.status;
+      if (updates.status === 'occupied' && currentRoom.status !== 'occupied') {
+        return NextResponse.json({ error: 'Rooms can only be marked occupied by a successful guest check-in' }, { status: 409 });
+      }
+      const activeStay = await db.collection('reservations').findOne({
+        roomId: new ObjectId(id),
+        status: { $in: ['checked-in', 'checked_in', 'in-house', 'in_house'] },
+      });
+      if (activeStay && updates.status !== 'occupied') {
+        return NextResponse.json({ error: 'Complete checkout before changing the status of an occupied room' }, { status: 409 });
+      }
+    }
+    const roomFilter: Record<string, unknown> = { _id: new ObjectId(id) };
+    if (updates.status != null) roomFilter.status = expectedRoomStatus;
     const result = await db.collection('rooms').findOneAndUpdate(
-      { _id: new ObjectId(id) },
+      roomFilter,
       { $set: { ...updates, updatedAt: new Date(), updatedBy: decoded.email ?? 'unknown' } },
       { returnDocument: 'after' }
     );
 
-    if (!result) return NextResponse.json({ error: 'Room not found' }, { status: 404 });
+    if (!result) {
+      return NextResponse.json(
+        { error: updates.status != null ? 'Room status changed; refresh before trying again' : 'Room not found' },
+        { status: updates.status != null ? 409 : 404 },
+      );
+    }
 
     try {
       await db.collection('audit_logs').insertOne({

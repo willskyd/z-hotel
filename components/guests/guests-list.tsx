@@ -1,6 +1,6 @@
 'use client';
 
-import { Eye, Crown, Shield, Users } from 'lucide-react';
+import { Eye, Crown, Shield, Users, ChevronDown } from 'lucide-react';
 import { formatNairaCompact } from '@/lib/utils';
 
 export interface GovernmentDoc {
@@ -58,7 +58,46 @@ interface GuestsListProps {
 export default function GuestsList({ guests, onViewProfile }: GuestsListProps) {
   return (
     <div className="bg-card border border-border rounded-2xl overflow-hidden">
-      <div className="overflow-x-auto">
+      <div className="space-y-3 p-3 md:hidden">
+        {guests.map((guest) => {
+          const tier = getGuestTier(guest.totalRevenue);
+          const initials = `${guest.firstName[0] ?? ''}${guest.lastName[0] ?? ''}`;
+          return (
+            <article key={guest.id} className="min-w-0 rounded-xl border border-border bg-background/40 p-3.5">
+              <div className="flex min-w-0 items-center gap-3">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-primary/20 bg-primary/15 text-xs font-bold text-primary">{initials}</div>
+                <div className="min-w-0 flex-1">
+                  <p className="break-words text-sm font-semibold text-foreground">{guest.firstName} {guest.lastName}</p>
+                  <span className={`mt-1 inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${tier.bg} ${tier.color}`}><Crown size={10} />{tier.label}</span>
+                </div>
+                <button type="button" onClick={() => onViewProfile(guest)} aria-label={`View ${guest.firstName} ${guest.lastName} profile`} className="shrink-0 rounded-lg p-2 text-primary hover:bg-primary/10"><Eye size={15} /></button>
+              </div>
+              <details className="group mt-2 border-t border-border pt-2">
+                <summary className="flex min-h-9 cursor-pointer list-none items-center justify-between text-xs font-semibold text-primary [&::-webkit-details-marker]:hidden">
+                  Details<ChevronDown size={14} className="transition-transform group-open:rotate-180" />
+                </summary>
+                <dl className="grid grid-cols-2 gap-x-3 gap-y-2 pb-1 text-xs">
+                  <div className="col-span-2 min-w-0"><dt className="text-muted-foreground">Email</dt><dd className="break-all text-foreground">{guest.email || 'Not recorded'}</dd></div>
+                  <div className="min-w-0"><dt className="text-muted-foreground">Phone</dt><dd className="break-words text-foreground">{guest.phone || 'Not recorded'}</dd></div>
+                  <div className="min-w-0"><dt className="text-muted-foreground">Country</dt><dd className="break-words text-foreground">{guest.country || 'Not recorded'}</dd></div>
+                  <div><dt className="text-muted-foreground">Stays</dt><dd className="text-foreground">{guest.totalStays}</dd></div>
+                  <div><dt className="text-muted-foreground">Revenue</dt><dd className="break-words text-foreground">{formatNairaCompact(guest.totalRevenue)}</dd></div>
+                  <div><dt className="text-muted-foreground">Documents</dt><dd className="text-foreground">{guest.governmentDocs.length || 'None'}</dd></div>
+                  <div className="min-w-0"><dt className="text-muted-foreground">Last visit</dt><dd className="break-words text-foreground">{guest.lastVisit || 'Not recorded'}</dd></div>
+                </dl>
+                <button type="button" onClick={() => onViewProfile(guest)} className="mt-2 min-h-9 w-full rounded-lg border border-border text-xs font-medium text-foreground hover:bg-secondary">Open guest profile</button>
+              </details>
+            </article>
+          );
+        })}
+        {guests.length === 0 && (
+          <div className="py-12 text-center text-muted-foreground">
+            <Users size={32} className="mx-auto mb-3 opacity-20" />
+            <p className="text-sm">No guests found</p>
+          </div>
+        )}
+      </div>
+      <div className="hidden overflow-x-auto md:block">
         <table className="w-full">
           <thead>
             <tr className="border-b border-border bg-secondary/30">
