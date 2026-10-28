@@ -254,24 +254,24 @@ export default function FrontDeskPage() {
   ];
 
   return (
-    <main className="mx-auto max-w-[1400px] space-y-6">
-      <header className="flex flex-wrap items-center justify-between gap-4">
+    <main className="mx-auto min-w-0 max-w-[1400px] space-y-5 sm:space-y-6">
+      <header className="flex min-w-0 flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
         <div>
-          <div className="flex items-center gap-2 text-primary">
-            <ConciergeBell size={20} />
-            <span className="text-xs font-semibold uppercase tracking-[0.18em]">Receptionist</span>
+          <div className="flex items-center gap-1.5 text-primary sm:gap-2">
+            <ConciergeBell size={17} className="shrink-0 sm:h-5 sm:w-5" />
+            <span className="text-[10px] font-semibold uppercase tracking-[0.16em] sm:text-xs sm:tracking-[0.18em]">Receptionist</span>
           </div>
-          <h1 className="mt-1 text-2xl font-bold text-foreground">Receptionist</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <h1 className="mt-1 text-xl font-bold text-foreground sm:text-2xl">Receptionist</h1>
+          <p className="mt-1 text-xs text-muted-foreground sm:text-sm">
             {today.toLocaleDateString('en-NG', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
           </p>
         </div>
-        <div className="flex gap-2">
-          <button onClick={() => void loadData(true)} disabled={refreshing} className="flex items-center gap-2 rounded-xl border border-border px-4 py-2.5 text-sm text-foreground hover:bg-secondary disabled:opacity-50" aria-label="Refresh receptionist data">
-            <RefreshCw size={15} className={refreshing ? 'animate-spin' : ''} /> Refresh
+        <div className="flex w-full gap-2 sm:w-auto">
+          <button onClick={() => void loadData(true)} disabled={refreshing} className="flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-xl border border-border px-3 py-2 text-xs text-foreground hover:bg-secondary disabled:opacity-50 sm:flex-none sm:gap-2 sm:px-4 sm:py-2.5 sm:text-sm" aria-label="Refresh receptionist data">
+            <RefreshCw size={14} className={`shrink-0 ${refreshing ? 'animate-spin' : ''}`} /> Refresh
           </button>
-          <button onClick={() => { setWalkInError(''); setShowWalkIn(true); }} className="flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:shadow-lg hover:shadow-primary/25">
-            <ConciergeBell size={16} /> New Walk-In
+          <button onClick={() => { setWalkInError(''); setShowWalkIn(true); }} className="flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-xl bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground hover:shadow-lg hover:shadow-primary/25 sm:flex-none sm:gap-2 sm:px-5 sm:py-2.5 sm:text-sm">
+            <ConciergeBell size={14} className="shrink-0 sm:h-4 sm:w-4" /> <span className="min-w-0 truncate">New Walk-In</span>
           </button>
         </div>
       </header>
@@ -279,31 +279,31 @@ export default function FrontDeskPage() {
       {error && <p role="alert" className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">{error}</p>}
       {notice && <p role="status" className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-400">{notice}</p>}
 
-      <section className="grid grid-cols-2 gap-3 lg:grid-cols-4" aria-label="Reception summary">
+      <section className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4" aria-label="Reception summary">
         {[
           { label: "Today's Arrivals", value: arrivals.length, Icon: CalendarCheck2, color: 'text-emerald-400' },
           { label: "Today's Departures", value: departures.length, Icon: CalendarClock, color: 'text-amber-400' },
           { label: 'Guests In-House', value: inHouse.length, Icon: Users, color: 'text-blue-400' },
           { label: 'Available Rooms', value: availableRooms.length, Icon: BedDouble, color: 'text-primary' },
         ].map(({ label, value, Icon, color }) => (
-          <div key={label} className="flex items-center gap-3 rounded-2xl border border-border bg-card p-4">
-            <div className="rounded-xl bg-secondary p-2.5"><Icon size={18} className={color} /></div>
-            <div><p className="text-2xl font-bold text-foreground">{loading ? '—' : value}</p><p className="text-xs text-muted-foreground">{label}</p></div>
+          <div key={label} className="flex min-w-0 items-center gap-2 rounded-2xl border border-border bg-card p-3 sm:gap-3 sm:p-4">
+            <div className="shrink-0 rounded-lg bg-secondary p-2 sm:rounded-xl sm:p-2.5"><Icon size={16} className={color} /></div>
+            <div className="min-w-0"><p className="text-xl font-bold leading-none text-foreground sm:text-2xl">{loading ? '—' : value}</p><p className="mt-1 break-words text-[10px] leading-tight text-muted-foreground sm:text-xs">{label}</p></div>
           </div>
         ))}
       </section>
 
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
         <section className="overflow-hidden rounded-2xl border border-border bg-card">
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border p-4">
-            <div className="flex gap-1 overflow-x-auto">
+          <div className="flex min-w-0 flex-col gap-3 border-b border-border p-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:p-4">
+            <div className="grid min-w-0 grid-cols-2 gap-1 sm:flex sm:flex-wrap">
               {tabs.map(({ id, label, count, Icon }) => (
-                <button key={id} onClick={() => setActiveTab(id)} className={`flex items-center gap-2 whitespace-nowrap rounded-xl px-3 py-2 text-sm ${activeTab === id ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-secondary'}`}>
-                  <Icon size={15} /> {label} <span className="rounded-full bg-secondary px-2 py-0.5 text-xs">{count}</span>
+                <button key={id} onClick={() => setActiveTab(id)} className={`flex min-w-0 items-center justify-center gap-1 rounded-lg px-2 py-2 text-[10px] leading-tight sm:gap-2 sm:whitespace-nowrap sm:rounded-xl sm:px-3 sm:text-sm ${activeTab === id ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-secondary'}`}>
+                  <Icon size={13} className="shrink-0 sm:h-[15px] sm:w-[15px]" /> <span className="min-w-0 truncate">{label}</span> <span className="shrink-0 rounded-full bg-secondary px-1.5 py-0.5 text-[10px] sm:px-2 sm:text-xs">{count}</span>
                 </button>
               ))}
             </div>
-            <label className="flex min-w-48 items-center gap-2 rounded-xl border border-border bg-secondary/50 px-3 py-2">
+            <label className="flex w-full min-w-0 items-center gap-2 rounded-xl border border-border bg-secondary/50 px-3 py-2 sm:w-auto sm:min-w-48">
               <Search size={14} className="text-muted-foreground" />
               <input value={search} onChange={(event) => setSearch(event.target.value)} className="w-full bg-transparent text-sm outline-none" placeholder="Guest or room" aria-label="Search guest or room" />
             </label>
@@ -321,7 +321,7 @@ export default function FrontDeskPage() {
               const details = detailsFor(reservation);
               const overdue = isActiveStay(reservation.status) && new Date(reservation.checkOutDate).getTime() < clock;
               return (
-                <article key={reservation._id} className="flex min-w-0 flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+                <article key={reservation._id} className="flex min-w-0 flex-col gap-3 p-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:p-4">
                   <div className="min-w-0 flex-1">
                     <p className="break-words font-semibold text-foreground">{details.guestName}</p>
                     <p className="mt-1 text-xs text-muted-foreground">
@@ -356,10 +356,10 @@ export default function FrontDeskPage() {
                       </div>
                     </details>
                   </div>
-                  <div className="flex min-w-0 flex-wrap items-center justify-between gap-3 sm:justify-end">
-                    <div className="text-right">
+                  <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end sm:gap-3">
+                    <div className="min-w-0 text-left sm:text-right">
                       <p className="text-xs text-muted-foreground">Expected checkout</p>
-                      <p className={`text-sm font-medium ${overdue ? 'text-red-400' : 'text-foreground'}`}>{displayDate(reservation.checkOutDate)}</p>
+                      <p className={`break-words text-xs font-medium sm:text-sm ${overdue ? 'text-red-400' : 'text-foreground'}`}>{displayDate(reservation.checkOutDate)}</p>
                       {overdue && <span className="text-[10px] font-bold uppercase text-red-400">Overdue · checkout required</span>}
                     </div>
                     {activeTab === 'arrivals' ? (
@@ -386,9 +386,9 @@ export default function FrontDeskPage() {
         </section>
 
         <section className="overflow-hidden rounded-2xl border border-border bg-card">
-          <div className="flex items-center justify-between border-b border-border px-5 py-4">
-            <div><h2 className="font-semibold text-foreground">Room Readiness</h2><p className="mt-0.5 text-xs text-muted-foreground">Live operational status</p></div>
-            <span className="text-xs text-muted-foreground">{data.rooms.length} rooms</span>
+          <div className="flex min-w-0 items-center justify-between gap-2 border-b border-border px-3 py-3 sm:px-5 sm:py-4">
+            <div className="min-w-0"><h2 className="text-sm font-semibold text-foreground sm:text-base">Room Readiness</h2><p className="mt-0.5 text-[10px] text-muted-foreground sm:text-xs">Live operational status</p></div>
+            <span className="shrink-0 text-[10px] text-muted-foreground sm:text-xs">{data.rooms.length} rooms</span>
           </div>
           <div className="max-h-[490px] space-y-2 overflow-y-auto p-4">
             {loading ? <p className="p-4 text-center text-xs text-muted-foreground">Loading rooms…</p> : data.rooms.length === 0 ? (
@@ -402,9 +402,9 @@ export default function FrontDeskPage() {
                 maintenance: 'border-amber-500/20 bg-amber-500/5 text-amber-400',
               };
               return (
-                <div key={room._id} className="flex items-center justify-between rounded-xl border border-border px-3 py-2.5">
-                  <div className="flex items-center gap-2.5"><BedDouble size={15} className="text-muted-foreground" /><div><p className="text-sm font-semibold text-foreground">Room {room.roomNumber}</p><p className="text-[11px] text-muted-foreground">{room.type} · max {room.capacity} guests</p></div></div>
-                  <span className={`rounded-full border px-2 py-1 text-[10px] font-semibold capitalize ${styles[room.status] ?? 'border-border bg-secondary text-muted-foreground'}`}>{room.status || 'unknown'}</span>
+                <div key={room._id} className="flex min-w-0 items-center justify-between gap-2 rounded-xl border border-border px-2.5 py-2 sm:px-3 sm:py-2.5">
+                  <div className="flex min-w-0 items-center gap-2"><BedDouble size={14} className="shrink-0 text-muted-foreground" /><div className="min-w-0"><p className="text-xs font-semibold text-foreground sm:text-sm">Room {room.roomNumber}</p><p className="break-words text-[10px] text-muted-foreground sm:text-[11px]">{room.type} · max {room.capacity} guests</p></div></div>
+                  <span className={`shrink-0 rounded-full border px-1.5 py-1 text-[9px] font-semibold capitalize sm:px-2 sm:text-[10px] ${styles[room.status] ?? 'border-border bg-secondary text-muted-foreground'}`}>{room.status || 'unknown'}</span>
                 </div>
               );
             })}

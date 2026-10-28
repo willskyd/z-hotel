@@ -109,44 +109,44 @@ export default function AuditLogPage() {
   const uniqueActions = [...new Set(logs.map((l) => l.action))].sort();
 
   return (
-    <div className="space-y-6 max-w-[1400px]">
+    <div className="min-w-0 max-w-[1400px] space-y-6 overflow-x-clip md:overflow-x-visible">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Audit Log</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
+      <div className="flex min-w-0 flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="w-full min-w-0 sm:w-auto">
+          <h1 className="text-xl font-bold text-foreground sm:text-2xl">Audit Log</h1>
+          <p className="mt-1 break-words text-xs leading-relaxed text-muted-foreground sm:text-sm">
             Complete record of all administrative operations — {logs.length} entries
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5 px-3 py-2 bg-amber-500/10 border border-amber-500/20 rounded-xl">
+        <div className="flex w-full min-w-0 flex-col items-stretch gap-2 sm:w-auto sm:flex-row sm:items-center sm:justify-end sm:gap-3">
+          <div className="flex min-w-0 items-center gap-1.5 rounded-xl border border-amber-500/20 bg-amber-500/10 px-2.5 py-2 sm:px-3">
             <Shield size={14} className="text-amber-400" />
-            <span className="text-xs font-semibold text-amber-400 capitalize">{user?.role} view</span>
+            <span className="truncate text-[10px] font-semibold capitalize text-amber-400 sm:text-xs">{user?.role} view</span>
           </div>
-          <button className="flex items-center gap-2 px-4 py-2 bg-secondary border border-border rounded-xl text-sm font-medium text-foreground hover:bg-secondary/80 transition-colors">
+          <button className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-border bg-secondary px-3 py-2 text-xs font-medium text-foreground transition-colors hover:bg-secondary/80 sm:w-auto sm:shrink-0 sm:gap-2 sm:px-4 sm:text-sm">
             <Download size={14} /> Export CSV
           </button>
         </div>
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4">
         {[
           { label: 'Total Entries', value: logs.length, color: 'text-foreground' },
           { label: 'Today', value: logs.filter((l) => new Date(l.timestamp).toDateString() === new Date().toDateString()).length, color: 'text-primary' },
           { label: 'Admins', value: logs.filter((l) => l.userRole === 'admin').length, color: 'text-red-400' },
           { label: 'Sensitive Actions', value: logs.filter((l) => ['UPDATE_ROOM', 'DELETE_ROOM', 'UPDATE_ROOM_TYPE', 'CANCEL_RESERVATION'].includes(l.action)).length, color: 'text-amber-400' },
         ].map(({ label, value, color }) => (
-          <div key={label} className="bg-card border border-border rounded-2xl px-5 py-4">
-            <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">{label}</p>
-            <p className={`text-2xl font-bold ${color}`}>{value}</p>
+          <div key={label} className="flex min-w-0 flex-col items-start gap-1 rounded-xl border border-border bg-card px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between sm:gap-3 sm:rounded-2xl sm:px-5 sm:py-4">
+            <p className="text-[10px] uppercase leading-tight tracking-wide text-muted-foreground sm:text-xs sm:tracking-wider">{label}</p>
+            <p className={`shrink-0 text-xl font-bold sm:text-2xl ${color}`}>{value}</p>
           </div>
         ))}
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="flex items-center gap-2 flex-1 min-w-60 bg-card border border-border rounded-xl px-3 py-2.5 focus-within:border-primary/50 transition-colors">
+      <div className="grid min-w-0 grid-cols-1 gap-2 sm:flex sm:flex-wrap sm:items-center sm:gap-3">
+        <div className="flex min-w-0 items-center gap-2 rounded-xl border border-border bg-card px-3 py-2.5 transition-colors focus-within:border-primary/50 sm:min-w-60 sm:flex-1">
           <Search size={14} className="text-muted-foreground shrink-0" />
           <input
             type="text"
@@ -157,12 +157,12 @@ export default function AuditLogPage() {
           />
         </div>
 
-        <div className="flex items-center gap-2">
-          <Filter size={14} className="text-muted-foreground" />
+        <div className="grid min-w-0 grid-cols-1 gap-2 sm:flex sm:items-center">
+          <Filter size={14} className="hidden text-muted-foreground sm:block" />
           <select
             value={filterAction}
             onChange={(e) => setFilterAction(e.target.value)}
-            className="bg-card border border-border rounded-xl px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
+            className="w-full min-w-0 rounded-xl border border-border bg-card px-3 py-2.5 text-xs text-foreground transition-all focus:outline-none focus:ring-2 focus:ring-primary/50 sm:w-auto sm:text-sm"
           >
             <option value="">All Actions</option>
             {uniqueActions.map((a) => (
@@ -172,7 +172,7 @@ export default function AuditLogPage() {
           <select
             value={filterRole}
             onChange={(e) => setFilterRole(e.target.value)}
-            className="bg-card border border-border rounded-xl px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
+            className="w-full min-w-0 rounded-xl border border-border bg-card px-3 py-2.5 text-xs text-foreground transition-all focus:outline-none focus:ring-2 focus:ring-primary/50 sm:w-auto sm:text-sm"
           >
             <option value="">All Roles</option>
             <option value="admin">Admin</option>
@@ -181,11 +181,11 @@ export default function AuditLogPage() {
           </select>
         </div>
 
-        <p className="text-xs text-muted-foreground ml-auto">{filtered.length} results</p>
+        <p className="text-right text-xs text-muted-foreground sm:ml-auto">{filtered.length} results</p>
       </div>
 
       {/* Log Table */}
-      <div className="bg-card border border-border rounded-2xl overflow-hidden">
+      <div className="hidden overflow-hidden rounded-2xl border border-border bg-card md:block">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
@@ -283,6 +283,59 @@ export default function AuditLogPage() {
             </div>
           )}
         </div>
+      </div>
+
+      {/* Mobile audit entries */}
+      <div className="min-w-0 max-w-full space-y-2 overflow-x-clip md:hidden">
+        {filtered.map((log) => {
+          const meta = ACTION_META[log.action] ?? ACTION_META.LOGIN;
+          return (
+            <details key={log.id} className="group min-w-0 overflow-hidden rounded-xl border border-border bg-card">
+              <summary className="flex min-w-0 cursor-pointer list-none flex-col gap-2 p-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/50 [&::-webkit-details-marker]:hidden">
+                <div className="flex min-w-0 items-center justify-between gap-2">
+                  <span className="flex min-w-0 items-center gap-1.5 text-xs font-semibold text-foreground">
+                    <Clock size={13} className="shrink-0 text-muted-foreground" />
+                    <span className="truncate">{timeAgo(log.timestamp)}</span>
+                  </span>
+                  <ChevronDown size={15} className="shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
+                </div>
+                <div className="flex min-w-0 flex-col items-start gap-2">
+                  <span className={`inline-flex max-w-full items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-semibold ${meta.bg} ${meta.color}`}>
+                    <meta.Icon size={11} className="shrink-0" />
+                    <span className="truncate">{meta.label}</span>
+                  </span>
+                  <span className="min-w-0 max-w-full break-all text-[11px] text-muted-foreground">{log.userEmail}</span>
+                </div>
+              </summary>
+              <div className="grid min-w-0 max-w-full gap-2 border-t border-border/70 bg-secondary/20 p-3 text-xs [overflow-wrap:anywhere]">
+                <p><span className="text-muted-foreground">Timestamp: </span><span className="font-mono text-foreground">{new Date(log.timestamp).toLocaleString('en-NG', { dateStyle: 'medium', timeStyle: 'short' })}</span></p>
+                <p><span className="text-muted-foreground">User role: </span><span className="capitalize text-foreground">{log.userRole}</span></p>
+                <p><span className="text-muted-foreground">Action: </span><span className="text-foreground">{meta.label}</span></p>
+                <p className="break-all"><span className="text-muted-foreground">Entity: </span><span className="capitalize text-foreground">{log.entity.replace('_', ' ')}</span>{log.entityId && <span className="font-mono text-muted-foreground"> · {log.entityId}</span>}</p>
+                <p className="break-words"><span className="text-muted-foreground">Details: </span><span className="text-foreground">{log.details}</span></p>
+                {log.metadata && Object.keys(log.metadata).length > 0 && (
+                  <div className="border-t border-border/70 pt-2">
+                    <p className="mb-1.5 font-semibold uppercase tracking-wide text-muted-foreground">Additional information</p>
+                    <div className="grid min-w-0 grid-cols-1 gap-2">
+                      {Object.entries(log.metadata).map(([key, value]) => (
+                        <div key={key} className="min-w-0 rounded-lg border border-border bg-card px-2.5 py-2">
+                          <p className="break-words text-[10px] text-muted-foreground">{key}</p>
+                          <p className="break-words font-mono font-medium text-foreground">{String(value)}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </details>
+          );
+        })}
+        {filtered.length === 0 && (
+          <div className="rounded-xl border border-border bg-card py-10 text-center text-muted-foreground">
+            <FileText size={30} className="mx-auto mb-2 opacity-30" />
+            <p className="text-sm">No audit log entries match your filters</p>
+          </div>
+        )}
       </div>
     </div>
   );
