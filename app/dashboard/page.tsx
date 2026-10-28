@@ -46,8 +46,16 @@ export default function DashboardPage() {
       {/* Welcome Banner */}
       <div className="relative rounded-2xl overflow-hidden border border-primary/20 bg-gradient-to-br from-[#141830] via-[#0f1225] to-[#0a0e27]">
         <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-0 right-0 w-80 h-80 bg-primary/8 rounded-full blur-3xl" />
-          <div className="absolute bottom-0 left-1/3 w-60 h-60 bg-indigo-500/5 rounded-full blur-3xl" />
+          {/* Use gradients on mobile to avoid repaint issues from filtered layers in clipped scroll content. */}
+          <div
+            className="absolute inset-0 md:hidden"
+            style={{
+              backgroundImage:
+                'radial-gradient(circle at 85% 15%, rgb(212 165 116 / 8%), transparent 42%), radial-gradient(circle at 33% 100%, rgb(99 102 241 / 5%), transparent 35%)',
+            }}
+          />
+          <div className="absolute top-0 right-0 hidden w-80 h-80 rounded-full bg-primary/8 blur-3xl md:block" />
+          <div className="absolute bottom-0 left-1/3 hidden w-60 h-60 rounded-full bg-indigo-500/5 blur-3xl md:block" />
           {/* Grid pattern */}
           <svg className="absolute inset-0 opacity-[0.04]" width="100%" height="100%">
             <defs>
